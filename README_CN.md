@@ -13,7 +13,7 @@
 让文档成为 Agent-Friendly 数据。
 
 [![HuggingFace Model](https://img.shields.io/badge/🤗%20HuggingFace-OXR--1.0-F59E0B?style=flat-square)](https://huggingface.co/SoMarkAI/OXR-1.0)
-[![ModelScope Model](https://img.shields.io/badge/ModelScope-OXR--1.0-624AFF?style=flat-square)](https://modelscope.cn/models/SoMarkAI/OXR-1.0)
+[![ModelScope Model](https://img.shields.io/badge/ModelScope-OXR--1.0-624AFF?style=flat-square)](https://modelscope.cn/models/SoMark/OXR-1.0)
 
 </div>
 
