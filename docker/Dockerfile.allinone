@@ -1,0 +1,40 @@
+# Match the publicly available runtime used for model reproduction.
+ARG VLLM_IMAGE=vllm/vllm-openai:v0.25.1@sha256:e4f88a835143cd22aee2397a26ec6bb80b3a4a6fe0c882bcbc63822904766089
+FROM ${VLLM_IMAGE}
+
+# Allow a public package mirror for builds with slow access to PyPI.
+ARG PIP_INDEX_URL=https://pypi.org/simple
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    MODEL_PATH=/models/oxr-model \
+    OXR_SERVED_MODEL_NAME=oxr \
+    OXR_API_PORT=8000 \
+    VLLM_PORT=8080 \
+    DFINE_PORT=8081 \
+    VLLM_GPU_MEMORY_UTILIZATION=0.70 \
+    VLLM_MAX_MODEL_LEN=16384 \
+    ALLINONE_STARTUP_TIMEOUT=900 \
+    DFINE_DEVICE=cuda \
+    DFINE_CUDA_GRAPH=1 \
+    DFINE_PARALLEL_PREPROCESS=1
+
+WORKDIR /app
+COPY . /app/
+
+# Keep API, LA preprocessing and the model plugin in separate environments.
+# Only the model environment consumes the frozen base inference dependencies.
+RUN python3 -m venv --system-site-packages /opt/vllm-venv \
+    && /opt/vllm-venv/bin/python -m pip install --no-cache-dir 'setuptools>=69' wheel \
+    && python3 -m venv --system-site-packages /opt/oxr-venv \
+    && /opt/oxr-venv/bin/python -m pip install --no-cache-dir \
+        -c /app/docker/requirements.allinone.txt /app \
+    && python3 -m venv --system-site-packages /opt/dfine-venv \
+    && /opt/dfine-venv/bin/python -m pip install --no-cache-dir \
+        -r /app/services/layout_analyze/requirements.txt
+
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15m --retries=3 \
+    CMD ["/opt/oxr-venv/bin/python", "/app/docker/allinone_entrypoint.py", "--healthcheck"]
+ENTRYPOINT ["/opt/oxr-venv/bin/python", "/app/docker/allinone_entrypoint.py"]

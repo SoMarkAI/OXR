@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OXR Online Demo</title>
+    <link rel="icon" type="image/svg+xml" href="/demo/assets/favicon.svg">
+    <link rel="stylesheet" href="/demo/assets/vendor/deps/katex.min.css">
+    <link rel="stylesheet" href="/demo/assets/vendor/deps/highlight.js.default.min.css">
+    <link rel="stylesheet" href="/demo/assets/vendor/somarkdown/somarkdown.css">
+    <link rel="stylesheet" href="/demo/assets/style/index.css">
+</head>
+<body>
+    <main class="app-container" id="app-container">
+        <header class="app-header">
+            <a href="https://somark.ai" target="_blank" rel="noopener noreferrer" class="logo-text" aria-label="OXR Online Demo SoMark">
+                <span>O<span class="brand-accent">X</span>R Online Demo｜</span>
+                <svg class="header__logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170.82 137.43" aria-hidden="true">
+                    <rect class="header__logo-rect header__logo-rect--top" x="0" width="170.82" height="27.49" fill="#fff"/>
+                    <rect class="header__logo-rect header__logo-rect--middle" y="54.97" width="170.82" height="27.49" fill="#f39800"/>
+                    <rect class="header__logo-rect header__logo-rect--bottom-left" x="0" y="109.95" width="71.67" height="27.49" fill="#fff"/>
+                    <rect class="header__logo-rect header__logo-rect--bottom-right" x="99.15" y="109.95" width="71.67" height="27.49" fill="#fff"/>
+                </svg>
+                <span>SoMark</span>
+            </a>
+            <div class="header-actions">
+                <button class="icon-btn" id="download-button" type="button" disabled aria-label="Download Markdown" title="Download Markdown">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+                </button>
+            </div>
+        </header>
+        <div class="markdown-content" id="markdown-content">
+            <aside class="config-panel" aria-label="Config">
+                <div class="panel-header"><span class="panel-title">Config</span></div>
+                <div class="config-content" tabindex="0" aria-label="Configuration and model information">
+                    <nav class="config-badges" aria-label="OXR resources">
+                        <a class="resource-badge" href="https://github.com/SoMarkAI/OXR" target="_blank" rel="noopener noreferrer">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-4 1.2-4-2-6-2m12 5v-4a3.5 3.5 0 0 0-1-2.7c3.3-.4 6-1.6 6-5.3a4.2 4.2 0 0 0-1-2.8 4 4 0 0 0-.1-2.8s-1-.3-3.2 1a11 11 0 0 0-5.4 0c-2.2-1.3-3.2-1-3.2-1A4 4 0 0 0 7 7.2 4.2 4.2 0 0 0 6 10c0 3.7 2.7 4.9 6 5.3A3.5 3.5 0 0 0 11 18v4"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">GitHub</span></span>
+                        </a>
+                        <a class="resource-badge" href="https://huggingface.co/SoMarkAI/OXR-1.0" target="_blank" rel="noopener noreferrer">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12a7 7 0 1 1 14 0M9 11h.01M15 11h.01M9 14c1.6 1.3 4.4 1.3 6 0M8 20l-4-2-2-4c-.5-1.2 1-2 1.8-.9l1.7 2.1M8 20h2v-3l-3-2c-1.2-.8-2.3.5-1.3 1.5L7 18m9 2 4-2 2-4c.5-1.2-1-2-1.8-.9l-1.7 2.1M16 20h-2v-3l3-2c1.2-.8 2.3.5 1.3 1.5L17 18"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">Hugging Face</span></span>
+                        </a>
+                        <a class="resource-badge" href="https://modelscope.cn/models/SoMark/OXR-1.0" target="_blank" rel="noopener noreferrer">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 10 9-5M12 12 3 7m9 5v10M7.5 4.5l9 5v5l-4.5 2.5-4.5-2.5v-5l9-5"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">ModelScope</span></span>
+                        </a>
+                        <a class="resource-badge" href="https://somark.ai/oxr" target="_blank" rel="noopener noreferrer">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">Official Website</span></span>
+                        </a>
+                        <span class="resource-badge resource-badge--static">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 3 10 18M17 3 7 21M5 8l4-3m6 14 4-3"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">arXiv</span><span class="resource-badge-detail">· Coming soon</span></span>
+                        </span>
+                        <span class="resource-badge resource-badge--static">
+                            <svg class="resource-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H5v18h14v-9M13 3v6h6l-6-6M8 13h5m-5 4h8"/></svg>
+                            <span class="resource-badge-text"><span class="resource-badge-label">License</span><span class="resource-badge-detail">· Apache 2.0</span></span>
+                        </span>
+                    </nav>
+                    <button class="upload-button" id="upload-button" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4"/></svg>
+                        Upload File
+                    </button>
+                    <input id="file-input" type="file" accept="application/pdf,image/png,image/jpeg,image/webp,image/bmp,image/tiff,.pdf,.png,.jpg,.jpeg,.webp,.bmp,.tif,.tiff" hidden>
+                    <section class="config-section" aria-labelledby="parameters-title">
+                        <h2 class="config-heading" id="parameters-title">Parsing Parameters</h2>
+                        <div class="parameter-control">
+                            <div class="parameter-label-row">
+                                <label for="temperature-value">Temperature</label>
+                                <input id="temperature-value" type="number" min="0" max="2" step="0.01" value="0" inputmode="decimal">
+                            </div>
+                            <input id="temperature-slider" type="range" min="0" max="2" step="0.01" value="0" aria-label="Temperature slider">
+                        </div>
+                        <div class="parameter-control">
+                            <div class="parameter-label-row">
+                                <label for="top_p-value">Top P</label>
+                                <input id="top_p-value" type="number" min="0" max="1" step="0.01" value="1" inputmode="decimal">
+                            </div>
+                            <input id="top_p-slider" type="range" min="0" max="1" step="0.01" value="1" aria-label="Top P slider">
+                        </div>
+                        <div class="parameter-control">
+                            <div class="parameter-label-row">
+                                <label for="repetition_penalty-value">Repetition Penalty</label>
+                                <input id="repetition_penalty-value" type="number" min="0.1" max="2" step="0.01" value="1" inputmode="decimal">
+                            </div>
+                            <input id="repetition_penalty-slider" type="range" min="0.1" max="2" step="0.01" value="1" aria-label="Repetition Penalty slider">
+                        </div>
+                    </section>
+                    <section class="config-section" id="status-section" aria-labelledby="status-title">
+                        <div class="status-heading-row">
+                            <h2 class="config-heading" id="status-title">Status</h2>
+                            <span class="status-indicator" id="status-state" data-state="empty" role="status">Empty</span>
+                        </div>
+                        <dl class="status-details">
+                            <div class="status-file-row"><dt>File</dt><dd id="status-file">—</dd></div>
+                            <div><dt>Pages</dt><dd id="status-pages">—</dd></div>
+                            <div><dt>Total elapsed</dt><dd id="status-elapsed">—</dd></div>
+                            <div id="status-processing-row" hidden><dt>Processing time</dt><dd id="status-processing">—</dd></div>
+                        </dl>
+                        <p class="status-error" id="status-error" role="alert" hidden></p>
+                        <button class="text-btn retry-button" id="retry-button" type="button" hidden>Retry</button>
+                    </section>
+                    <section class="config-section config-about" aria-labelledby="about-title">
+                        <h2 class="config-heading" id="about-title">About OXR</h2>
+                        <p>OXR (Optical Everything Recognition) is an open-source model from the SoMark team. It turns PDFs and document images into Agent-Friendly data in Markdown or JSON, with layout coordinates included.</p>
+                        <p>Pretrained from scratch, OXR uses a recursive self-improvement (RSI) loop during post-training—a first in document parsing. With just 1.3B parameters, OXR ranks #1 on olmOCR-Bench, OmniDocBench, and DocParsingBench while delivering industry-leading parsing speed.</p>
+                    </section>
+                </div>
+            </aside>
+            <div class="document-panels" id="document-panels">
+                <section class="file-panel" aria-label="File">
+                    <div class="panel-header">
+                        <span class="panel-title">File</span>
+                    </div>
+                    <div class="panel-viewport file-viewport" id="file-viewport" tabindex="0" aria-label="File pages">
+                        <button class="empty-state upload-dropzone" id="upload-dropzone" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M12 17v-6m-3 3 3-3 3 3"></path></svg>
+                            <span class="empty-title">Drop a PDF or image here</span>
+                            <span>or click to choose a file</span>
+                        </button>
+                        <div id="file-pages"></div>
+                    </div>
+                </section>
+                <div class="markdown-splitter" id="markdown-splitter" role="separator" aria-label="Resize File and result panels" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
+                <section class="result-panel" aria-label="Parsing result">
+                    <div class="panel-header result-header">
+                        <div class="tabs" role="tablist" aria-label="Result view">
+                            <button class="tab active" id="tab-rendered" role="tab" aria-selected="true" aria-controls="rendered-viewport" data-tab="rendered">Preview</button>
+                            <button class="tab" id="tab-source" role="tab" aria-selected="false" aria-controls="source-viewport" data-tab="source" tabindex="-1">Source</button>
+                            <button class="tab" id="tab-layout" role="tab" aria-selected="false" aria-controls="layout-viewport" data-tab="layout" tabindex="-1">Layout</button>
+                        </div>
+                        <span class="page-count" id="page-count"></span>
+                    </div>
+                    <div class="panel-viewport rendered-viewport" id="rendered-viewport" role="tabpanel" aria-labelledby="tab-rendered" tabindex="0"><div class="empty-state result-empty">Your parsed document will appear here</div></div>
+                    <div class="panel-viewport source-viewport" id="source-viewport" role="tabpanel" aria-labelledby="tab-source" tabindex="0" hidden></div>
+                    <div class="panel-viewport layout-viewport" id="layout-viewport" role="tabpanel" aria-labelledby="tab-layout" tabindex="0" hidden></div>
+                </section>
+            </div>
+        </div>
+        <div class="bottom-spacer" aria-hidden="true"></div>
+    </main>
+    <div class="file-drop-overlay" id="file-drop-overlay" role="status" aria-live="polite" hidden>
+        <div class="file-drop-message">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4"/></svg>
+            <strong>Drop file to parse</strong>
+            <span>Release your PDF or image to start parsing</span>
+        </div>
+    </div>
+    <div class="parse-progress" id="parse-progress" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <ol class="progress-tree" aria-label="Document progress">
+            <li class="progress-step" id="upload-step"><span class="progress-node" aria-hidden="true"></span><span id="upload-progress-label">Uploading...</span></li>
+            <li class="progress-step" id="parse-step"><span class="progress-node" aria-hidden="true"></span><span>Parsing...</span></li>
+        </ol>
+    </div>
+    <script src="/demo/assets/vendor/somarkdown/somarkdown.umd.min.js"></script>
+    <script type="module" src="/demo/assets/lib/index.js"></script>
+</body>
+</html>

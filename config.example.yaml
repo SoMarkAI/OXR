@@ -1,0 +1,49 @@
+server:
+  # Host address the HTTP server binds to.
+  host: 0.0.0.0
+  # Port number the HTTP server listens on.
+  port: 8000
+  # Number of server worker processes to start.
+  workers: 1
+
+layout_analyze_model:
+  # Base URL of the external D-FINE layout service (it receives POST /inference).
+  url: http://127.0.0.1:8081
+  # Pages in each multipart layout request.
+  batch_size: 8
+  # Concurrent D-FINE HTTP attempts.
+  max_concurrency: 2
+  # Seconds allowed for each D-FINE HTTP attempt.
+  timeout: 60
+  # Total whole-batch HTTP attempts, including the initial attempt.
+  retry_times: 2
+  # Keep candidates whose confidence score is at least this value.
+  score_threshold: 0.5
+  # Set true only when the layout service returns blocks in reading order.
+  provides_reading_order: false
+
+oxr_model:
+  # Model identifier used when sending requests to the OXR OpenAI-compatible API.
+  model_name: oxr
+  # Base URL of the OXR OpenAI-compatible model service.
+  url: http://127.0.0.1:8080/v1
+  # Maximum number of tokens the model can generate per request.
+  max_tokens: 8192
+  # Global concurrent recognition and reading-order HTTP attempts.
+  max_concurrency: 16
+  # Seconds allowed for each OXR HTTP attempt.
+  timeout: 120
+  # Total HTTP attempts per OXR request, including the initial attempt.
+  retry_times: 2
+
+pipeline:
+  # Directory used to save extracted image outputs.
+  image_output_dir: outputs
+  # Opt in to all-category cleanup: outer boxes absorb contained boxes first;
+  # any remaining positive-area overlap keeps the higher LA confidence.
+  # Equal confidence keeps the earlier block; missing confidence skips comparison.
+  full_overlap_dedupe: false
+  # Restore confident Picture blocks fully contained in a Table via numbered
+  # blue/white <tit> tokens. Incomplete IDs fall back to the original table image.
+  table_image_placeholders: false
+  table_image_min_score: 0.5

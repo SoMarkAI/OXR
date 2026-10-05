@@ -1,0 +1,40 @@
+[project]
+name = "somark-oxr"
+version = "0.1.0"
+description = "Optical Everything Recognition — high-performance document parsing"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+dependencies = [
+    "typer",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "openai",
+    "sopdf>=0.2.0",
+    "opencv-python",
+    "pydantic-settings",
+    "PyYAML",
+    "httpx",
+]
+
+[project.scripts]
+oxr = "oxr.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/SoMarkAI/OXR"
+Repository = "https://github.com/SoMarkAI/OXR"
+Issues = "https://github.com/SoMarkAI/OXR/issues"
+"Hugging Face" = "https://huggingface.co/SoMarkAI/OXR-1.0"
+ModelScope = "https://modelscope.cn/models/SoMarkAI/OXR-1.0"
+
+[build-system]
+requires = ["setuptools>=77.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["oxr*"]
+
+[tool.setuptools.package-data]
+"oxr.server" = ["demo/**/*", "demo/*"]
