@@ -57,6 +57,7 @@ def test_demo_upload_publishes_page_before_result_and_decodes_only_once(monkeypa
         assert len(images) == 1 and images[0].shape == (18, 24, 3)
         assert formats == ["markdown", "json"]
         assert kwargs["demo"] is True
+        assert kwargs["keep_header_footer"] is True
         assert kwargs["started_at"] > 0
         while not release.is_set():
             await asyncio.sleep(0.01)
@@ -135,6 +136,47 @@ def test_demo_model_options_reach_pipeline(monkeypatch, demo_store, submitted, e
         assert response.status_code == 200
         wait_status(client, response.json()["data"]["id"], "success")
     assert received == [expected]
+
+
+@pytest.mark.parametrize("submitted, expected", [({}, True),
+    ({"keep_header_footer": "true"}, True), ({"keep_header_footer": "false"}, False),
+])
+def test_demo_header_footer_option_reaches_pipeline_separately(
+    monkeypatch, demo_store, submitted, expected,
+):
+    received = []
+
+    async def process(images, name, formats, **kwargs):
+        received.append(kwargs)
+        return {"file_name": name, "outputs": {}, "metadata": {}, "demo_pages": []}
+
+    monkeypatch.setattr(orchestrator, "process_decoded_document", process)
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/demo/jobs", data=submitted,
+            files={"file": ("example.png", image_bytes(), "image/png")},
+        )
+        assert response.status_code == 200
+        wait_status(client, response.json()["data"]["id"], "success")
+    assert len(received) == 1
+    assert received[0]["keep_header_footer"] is expected
+    assert "keep_header_footer" not in received[0]["model_options"]
+
+
+def test_demo_rejects_invalid_header_footer_option_before_creating_job(monkeypatch, demo_store):
+    def unexpected_create(*_args):
+        pytest.fail("Invalid header/footer option must not create a job")
+
+    monkeypatch.setattr(demo_store, "create", unexpected_create)
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/demo/jobs", data={"keep_header_footer": "sometimes"},
+            files={"file": ("example.png", image_bytes(), "image/png")},
+        )
+        assert response.status_code == 422
+        assert "keep_header_footer" in response.text
+        assert not app.state.demo_tasks
+    assert not list(demo_store.root.glob("*/manifest.json"))
 
 
 @pytest.mark.parametrize("name, value", [

@@ -39,6 +39,7 @@ config.local.yaml
 .DS_Store
 .superpowers/
 .worktrees/
+.python-version
 
 # Local coding-assistant instructions and private validation records.
 [Aa][Gg][Ee][Nn][Tt][Ss].md

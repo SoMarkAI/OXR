@@ -141,7 +141,8 @@ async def _process_decoded_document(
     )
 
     filtered_types = {BlockType.PAGE_HEADER, BlockType.PAGE_FOOTER}
-    # Demo retains these detections for overlays only, outside recognition and RO.
+    # Demo margins stay outside body reading order and cleanup. Recognition is
+    # optional; disabled margins retain the original overlay-only behavior.
     demo_page_margins = [
         [deepcopy(block) for block in blocks if block.type in filtered_types]
         for blocks in pages_blocks
@@ -162,21 +163,32 @@ async def _process_decoded_document(
         model_options,
         element_formats,
     )
-    if settings.layout_analyze_model.provides_reading_order:
-        pages_blocks = await recognize_pages(*recognition_args)
-    else:
+    async def recognize_body():
+        if settings.layout_analyze_model.provides_reading_order:
+            return await recognize_pages(*recognition_args)
         reading_order_task = asyncio.create_task(
             resolve_reading_orders(pages_blocks, images, semaphore)
         )
         recognition_task = asyncio.create_task(recognize_pages(*recognition_args))
-        reading_orders, pages_blocks = await gather_cancel_on_error(
+        reading_orders, recognized_pages = await gather_cancel_on_error(
             reading_order_task,
             recognition_task,
         )
-        pages_blocks = [
+        return [
             [blocks[local_id] for local_id in order]
-            for blocks, order in zip(pages_blocks, reading_orders)
+            for blocks, order in zip(recognized_pages, reading_orders)
         ]
+
+    if demo and keep_header_footer:
+        pages_blocks, demo_page_margins = await gather_cancel_on_error(
+            recognize_body(),
+            recognize_pages(
+                demo_page_margins, images, file_name, semaphore,
+                model_options, element_formats,
+            ),
+        )
+    else:
+        pages_blocks = await recognize_body()
     recognition_end_time = time.perf_counter()
 
     # Table pictures have already been restored (or retained in the raster
@@ -210,6 +222,30 @@ async def _process_decoded_document(
         if _COMPLETE_TEXT_DEDUPE:
             pages_blocks = [dedupe_complete_text(blocks) for blocks in pages_blocks]
         pages_blocks = [dedupe_exact_textual_blocks(blocks) for blocks in pages_blocks]
+
+    if demo and keep_header_footer:
+        for page_index, (blocks, margins) in enumerate(zip(pages_blocks, demo_page_margins)):
+            def margin_order(block):
+                return block.bbox[1], block.bbox[0], block.idx
+
+            headers = sorted(
+                (block for block in margins if block.type == BlockType.PAGE_HEADER),
+                key=margin_order,
+            )
+            footers = sorted(
+                (block for block in margins if block.type == BlockType.PAGE_FOOTER),
+                key=margin_order,
+            )
+            # Preserve gaps left by cleanup: formula numbering uses adjacent
+            # indexes to associate each surviving witness with its formula.
+            for block in blocks:
+                block.idx += len(headers)
+            footer_start = max((block.idx for block in blocks), default=len(headers) - 1) + 1
+            for idx, block in enumerate(headers):
+                block.idx = idx
+            for offset, block in enumerate(footers):
+                block.idx = footer_start + offset
+            pages_blocks[page_index] = headers + blocks + footers
 
     # 4. Phase 3: Assembly & Output Formatting
     outputs = {}
@@ -269,6 +305,7 @@ async def _process_decoded_document(
     }
 
     if demo:
+        metadata["keep_header_footer"] = keep_header_footer
         demo_pages = []
         for i, blocks in enumerate(pages_blocks):
             markdown, ranges = blocks_to_markdown_with_ranges(blocks)
@@ -286,7 +323,7 @@ async def _process_decoded_document(
                     "content": "", "format": b.format.value,
                     "start_line": None, "end_line": None,
                 }
-                for offset, b in enumerate(demo_page_margins[i])
+                for offset, b in enumerate(demo_page_margins[i] if not keep_header_footer else [])
             ]
             demo_page = {
                 "page_num": i,

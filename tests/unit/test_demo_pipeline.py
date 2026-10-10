@@ -134,10 +134,11 @@ def test_demo_header_footer_are_layout_only(
     )
     result = asyncio.run(orchestrator.process_decoded_document(
         [np.zeros((30, 40, 3), dtype=np.uint8)], "test.png", ["markdown", "json"],
-        demo=True,
+        demo=True, keep_header_footer=False,
     ))
 
     expected_inputs = [[BlockType.FORMULA] if with_body else []]
+    assert result["metadata"]["keep_header_footer"] is False
     assert captured["recognition"] == expected_inputs
     if not provides_reading_order:
         assert captured["reading_order"] == expected_inputs
@@ -173,6 +174,99 @@ def test_demo_header_footer_are_layout_only(
         assert body == []
 
 
+@pytest.mark.parametrize("provides_reading_order", [False, True])
+@pytest.mark.parametrize("with_body", [False, True])
+@pytest.mark.parametrize("full_overlap_dedupe", [False, True])
+def test_demo_recognizes_margins_outside_body_order_and_preserves_source_ranges(
+    monkeypatch, provides_reading_order, with_body, full_overlap_dedupe,
+):
+    header_right = block(0, BlockType.PAGE_HEADER, "")
+    header_right.bbox = [21, 0, 40, 4]
+    header_left = block(4, BlockType.PAGE_HEADER, "")
+    header_left.bbox = [0, 0, 19, 4]
+    footer_bottom = block(2, BlockType.PAGE_FOOTER, "")
+    footer_bottom.bbox = [0, 28, 40, 30]
+    footer_top = block(3, BlockType.PAGE_FOOTER, "")
+    footer_top.bbox = [0, 24, 40, 26]
+    formula = block(1, BlockType.FORMULA, "x = 1")
+    formula.bbox = [0, 8, 20, 18]
+    formula.text_before = "(1)"
+    formula.text_after = "(2)"
+    captured = {"recognition": [], "semaphores": [], "reading_order": []}
+    margin_contents = {
+        0: "Right **header**", 4: "Left header", 2: "Bottom footer", 3: "Top footer",
+    }
+
+    async def layout(*_args):
+        return [[header_right, footer_bottom, *([formula] if with_body else []),
+                 header_left, footer_top]]
+
+    async def recognize(pages, _images, _name, semaphore, *_args):
+        captured["recognition"].append([[b.type for b in page] for page in pages])
+        captured["semaphores"].append(semaphore)
+        for page in pages:
+            for region in page:
+                if region.type in {BlockType.PAGE_HEADER, BlockType.PAGE_FOOTER}:
+                    region.content = margin_contents[region.idx]
+        return pages
+
+    async def reading_order(pages, _images, semaphore):
+        captured["reading_order"].append([[b.type for b in page] for page in pages])
+        captured["semaphores"].append(semaphore)
+        return [list(range(len(page))) for page in pages]
+
+    monkeypatch.setattr(orchestrator, "analyze_layouts", layout)
+    monkeypatch.setattr(orchestrator, "recognize_pages", recognize)
+    monkeypatch.setattr(orchestrator, "resolve_reading_orders", reading_order)
+    monkeypatch.setattr(orchestrator.settings.pipeline, "full_overlap_dedupe", full_overlap_dedupe)
+    monkeypatch.setattr(
+        orchestrator.settings.layout_analyze_model, "provides_reading_order", provides_reading_order,
+    )
+    result = asyncio.run(orchestrator.process_decoded_document(
+        [np.zeros((30, 40, 3), dtype=np.uint8)], "test.png", ["markdown", "json"],
+        demo=True, keep_header_footer=True,
+    ))
+
+    body_inputs = [[BlockType.FORMULA] if with_body else []]
+    assert len(captured["recognition"]) == 2
+    assert body_inputs in captured["recognition"]
+    margin_inputs = next(pages for pages in captured["recognition"] if pages != body_inputs)
+    assert sorted(kind.value for kind in margin_inputs[0]) == [
+        "Page-footer", "Page-footer", "Page-header", "Page-header",
+    ]
+    assert captured["reading_order"] == ([] if provides_reading_order else [body_inputs])
+    assert all(sem is captured["semaphores"][0] for sem in captured["semaphores"])
+    assert result["metadata"]["keep_header_footer"] is True
+    page = result["demo_pages"][0]
+    regions = page["blocks"]
+    assert len({region["idx"] for region in regions}) == len(regions)
+    assert [region["type"] for region in regions] == [
+        "Page-header", "Page-header", *(["Formula"] if with_body else []),
+        "Page-footer", "Page-footer",
+    ]
+    assert [region["content"] for region in regions[:2]] == ["Left header", "Right **header**"]
+    assert [region["content"] for region in regions[-2:]] == ["Top footer", "Bottom footer"]
+    assert page["markdown"] == result["outputs"]["markdown"]
+    lines = page["markdown"].splitlines()
+    for region in regions:
+        assert region["start_line"] is not None and region["end_line"] > region["start_line"]
+        selected = "\n".join(lines[region["start_line"]:region["end_line"]])
+        expected_content = ["x = 1", "(1)", "(2)"] if region["type"] == "Formula" else [region["content"]]
+        for content in expected_content:
+            assert content in selected
+            assert page["markdown"].count(content) == 1
+    assert all(a["end_line"] <= b["start_line"] for a, b in zip(regions, regions[1:]))
+    assert [
+        {key: value for key, value in region.items() if key not in {"start_line", "end_line"}}
+        for region in regions
+    ] == result["outputs"]["json"]["pages"][0]["blocks"]
+    if with_body:
+        assert regions[2]["content"] == r"x = 1\leqno (1)\tag{2}"
+        # Formula-numbering slots remain adjacent after shifting the body indices.
+        assert regions[2]["idx"] == 3
+        assert regions[3]["idx"] == 5
+
+
 def test_demo_orphan_numbering_is_a_note_without_a_layout_region(monkeypatch):
     formula = block(0, BlockType.FORMULA, "x = 1")
     formula.text_after = "(48)"
@@ -199,6 +293,89 @@ def test_demo_orphan_numbering_is_a_note_without_a_layout_region(monkeypatch):
         {"idx": 1, "content": "(48)"},
     ]
     assert page["markdown"] == result["outputs"]["markdown"] == "(48)\n"
+
+
+@pytest.mark.parametrize("provides_reading_order", [False, True])
+def test_demo_margin_failure_cancels_body_work(monkeypatch, provides_reading_order):
+    async def scenario():
+        body_started = asyncio.Event()
+        body_cancelled = asyncio.Event()
+        order_started = asyncio.Event()
+        order_cancelled = asyncio.Event()
+
+        async def layout(*_args):
+            return [[block(0, BlockType.PAGE_HEADER, ""), block(1, BlockType.TEXT, "")]]
+
+        async def recognize(pages, *_args):
+            if pages[0][0].type == BlockType.PAGE_HEADER:
+                await body_started.wait()
+                if not provides_reading_order:
+                    await order_started.wait()
+                raise RuntimeError("margin recognition failed")
+            body_started.set()
+            try:
+                await asyncio.Future()
+            finally:
+                body_cancelled.set()
+
+        async def reading_order(*_args):
+            order_started.set()
+            try:
+                await asyncio.Future()
+            finally:
+                order_cancelled.set()
+
+        monkeypatch.setattr(orchestrator, "analyze_layouts", layout)
+        monkeypatch.setattr(orchestrator, "recognize_pages", recognize)
+        monkeypatch.setattr(orchestrator, "resolve_reading_orders", reading_order)
+        monkeypatch.setattr(
+            orchestrator.settings.layout_analyze_model, "provides_reading_order", provides_reading_order,
+        )
+        with pytest.raises(RuntimeError, match="margin recognition failed"):
+            await asyncio.wait_for(orchestrator.process_decoded_document(
+                [np.zeros((30, 40, 3), dtype=np.uint8)], "test.png", ["markdown"],
+                demo=True, keep_header_footer=True,
+            ), timeout=2)
+        # Check while this loop is still running, before asyncio.run's own cleanup.
+        assert body_cancelled.is_set()
+        if not provides_reading_order:
+            assert order_cancelled.is_set()
+        assert image_assets.get() is None
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("keep_header_footer", [None, False, True])
+def test_non_demo_header_footer_recognition_policy_is_unchanged(monkeypatch, keep_header_footer):
+    captured = []
+    header = block(0, BlockType.PAGE_HEADER, "Header")
+    header.bbox = [0, 0, 40, 4]
+    body = block(1, BlockType.TEXT, "Body")
+    body.bbox = [0, 8, 40, 18]
+    footer = block(2, BlockType.PAGE_FOOTER, "Footer")
+    footer.bbox = [0, 26, 40, 30]
+
+    async def layout(*_args):
+        return [[header, body, footer]]
+
+    async def recognize(pages, *_args):
+        captured.append([[region.type for region in page] for page in pages])
+        return pages
+
+    monkeypatch.setattr(orchestrator, "analyze_layouts", layout)
+    monkeypatch.setattr(orchestrator, "recognize_pages", recognize)
+    monkeypatch.setattr(orchestrator.settings.layout_analyze_model, "provides_reading_order", True)
+    options = {} if keep_header_footer is None else {"keep_header_footer": keep_header_footer}
+    result = asyncio.run(orchestrator.process_decoded_document(
+        [np.zeros((30, 40, 3), dtype=np.uint8)], "test.png", ["markdown", "json"], **options,
+    ))
+    expected = [BlockType.PAGE_HEADER, BlockType.TEXT, BlockType.PAGE_FOOTER] if keep_header_footer else [BlockType.TEXT]
+    assert captured == [[expected]]
+    assert [region["type"] for region in result["outputs"]["json"]["pages"][0]["blocks"]] == [kind.value for kind in expected]
+    assert ("Header" in result["outputs"]["markdown"]) is bool(keep_header_footer)
+    assert ("Footer" in result["outputs"]["markdown"]) is bool(keep_header_footer)
+    assert "keep_header_footer" not in result["metadata"]
+    assert "demo_pages" not in result
 
 
 def test_markdown_delimiter_repair_preserves_entire_json_and_demo_regions(monkeypatch):

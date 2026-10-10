@@ -102,6 +102,22 @@ export function sourceNodesForRange(container, start, end) {
         .filter((node) => Number(node.dataset.sourceLine) >= start && Number(node.dataset.sourceLine) < end);
 }
 
+export function moveRenderedNodes(container, nodes, destination) {
+    // Adjacent Markdown lists can share an outer list across OCR blocks. Keep
+    // that structural context when extracting only the margin's list items.
+    const parents = new Map([[container, destination]]);
+    const destinationFor = (parent) => {
+        if (parents.has(parent)) return parents.get(parent);
+        const clone = parent.cloneNode(false);
+        clone.removeAttribute("id");
+        clone.removeAttribute("data-line");
+        destinationFor(parent.parentElement).append(clone);
+        parents.set(parent, clone);
+        return clone;
+    };
+    for (const node of nodes) destinationFor(node.parentElement).append(node);
+}
+
 export function addPageDivider(parent, previous, next) {
     const divider = document.createElement("div");
     divider.className = "page-divider";
