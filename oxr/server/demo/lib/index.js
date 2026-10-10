@@ -1,8 +1,8 @@
-import { createRenderer, sanitizeMarkup, renderedNodesForRange, sourceNodesForRange, addPageDivider, renderSource } from "./rendering.js";
+import { createRenderer, sanitizeMarkup, renderedNodesForRange, sourceNodesForRange, moveRenderedNodes, addPageDivider, renderSource } from "./rendering.js";
 import { createPageImage, createLegend } from "./layout.js";
 import { PageSync, initSplitter } from "./page-sync.js";
 import { downloadLayoutImage } from "./layout-export.js";
-import { readModelOptions, resetStatus, startStatus, updateStatusPages, finishStatus } from "./config.js";
+import { readModelOptions, readParsingOptions, resetStatus, startStatus, updateStatusPages, finishStatus } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
 const fileViewport = $("file-viewport");
@@ -125,7 +125,7 @@ function updatePageImages(incoming) {
 function showResult(result) {
     markdown = String(result.outputs?.markdown || "");
     const images = new Map(pages.map((page) => [page.page_num, page]));
-    pages = (result.demo_pages || []).map((page) => ({ ...images.get(page.page_num), ...page })).sort((a, b) => a.page_num - b.page_num);
+    pages = (result.demo_pages || []).map((page) => ({ ...images.get(page.page_num), ...page, keep_header_footer: result.metadata?.keep_header_footer === true })).sort((a, b) => a.page_num - b.page_num);
     if (!pages.length) throw new Error("The server returned no document pages.");
     blockMap.clear();
     renderFiles();
@@ -145,10 +145,40 @@ function showResult(result) {
         // values are cell-local, not page-local. The table root owns this block.
         rendered.querySelectorAll("table[data-line] [data-line]").forEach((node) => node.removeAttribute("data-line"));
         for (const node of rendered.querySelectorAll("[data-line]")) node.classList.add("bi-direction-jump__target");
+        const headers = [];
+        const footers = [];
         (page.blocks || []).forEach((block, position) => {
             const key = `${page.page_num}:${position}`;
             const sourceNodes = sourceNodesForRange(source, block.start_line, block.end_line);
             let renderedNodes = renderedNodesForRange(rendered, block.start_line, block.end_line);
+            const margin = page.keep_header_footer && ["Page-header", "Page-footer"].includes(block.type);
+            if (margin) {
+                const wrapper = document.createElement("aside");
+                wrapper.className = "page-margin bi-direction-jump__target";
+                wrapper.dataset.marginKey = key;
+                const label = document.createElement("span");
+                label.className = "fallback-label";
+                label.textContent = block.type === "Page-header" ? "Header" : "Footer";
+                const text = document.createElement("div");
+                text.className = "page-margin-content";
+                // Move the original rendered nodes, keeping their Markdown and
+                // page-local line mappings intact without duplicating content.
+                moveRenderedNodes(rendered, renderedNodes, text);
+                if (!renderedNodes.length && String(block.content || "").trim()) {
+                    try {
+                        text.append(sanitizeMarkup(renderer.render(String(block.content)), `page-${page.page_num}-margin-${position}-`));
+                        text.querySelectorAll("[data-line]").forEach((node) => {
+                            if (Number.isInteger(block.start_line)) node.dataset.line = String(Number(node.dataset.line) + block.start_line);
+                            else node.removeAttribute("data-line");
+                        });
+                    } catch { text.textContent = String(block.content); }
+                    if (!text.textContent.trim()) text.textContent = String(block.content);
+                }
+                wrapper.append(label, text);
+                (block.type === "Page-header" ? headers : footers).push(wrapper);
+                for (const node of sourceNodes) node.dataset.marginKey = key;
+                renderedNodes = [wrapper];
+            }
             // Markdown definitions (for example unreferenced footnotes) may have no
             // rendered node. Keep their nonempty content visible and selectable.
             if (!renderedNodes.length && sourceNodes.length && String(block.content || "").trim()) {
@@ -167,6 +197,9 @@ function showResult(result) {
             }
             blockMap.set(key, { page: page.page_num, block, position, rendered: renderedNodes, source: sourceNodes });
         });
+        // Footnote fallbacks are appended during the loop; footers follow them.
+        rendered.prepend(...headers);
+        rendered.append(...footers);
         fragments[0].append(rendered);
         fragments[1].append(source);
         appendImagePage(fragments[2], page, "layout");
@@ -196,8 +229,9 @@ function selectBlock(key, origin = "tab") {
     for (const node of [...entry.rendered, ...entry.source]) node.classList.add("bi-direction-jump__target--active");
     for (const node of document.querySelectorAll(".layout-box")) node.classList.toggle("selected", node.dataset.blockKey === key);
     const viewport = $(`${activeTab}-viewport`);
-    sync.setPage(entry.page, origin === "layout" ? viewport : fileViewport);
-    if (origin === "layout") {
+    const fromResult = ["layout", "rendered", "source"].includes(origin);
+    sync.setPage(entry.page, fromResult ? viewport : fileViewport);
+    if (fromResult) {
         const fileBox = Array.from(fileViewport.querySelectorAll(".layout-box")).find((node) => node.dataset.blockKey === key);
         sync.reveal(fileViewport, fileBox);
     }
@@ -232,6 +266,7 @@ async function upload(file) {
     let modelOptions;
     try { modelOptions = readModelOptions(); }
     catch (error) { finishStatus(error.message); return; }
+    const parsingOptions = readParsingOptions();
     requestController?.abort();
     requestController = new AbortController();
     const signal = requestController.signal;
@@ -261,6 +296,7 @@ async function upload(file) {
         const form = new FormData();
         form.append("file", file);
         for (const [key, value] of Object.entries(modelOptions)) form.append(key, String(value));
+        for (const [key, value] of Object.entries(parsingOptions)) form.append(key, String(value));
         const job = await request("/v1/demo/jobs", { method: "POST", body: form });
         if (currentGeneration !== generation) return;
         setProgress("parse");
@@ -301,6 +337,13 @@ async function upload(file) {
 
 $("retry-button").addEventListener("click", () => upload(lastFile));
 $("upload-button").addEventListener("click", () => $("file-input").click());
+for (const name of ["rendered", "source"]) {
+    $(`${name}-viewport`).addEventListener("click", (event) => {
+        if (event.target.closest("a, button, input, select, textarea") || !window.getSelection()?.isCollapsed) return;
+        const target = event.target.closest("[data-margin-key]");
+        if (target) selectBlock(target.dataset.marginKey, name);
+    });
+}
 for (const viewport of [fileViewport, $("layout-viewport")]) {
     viewport.addEventListener("click", (event) => {
         if (!event.target.closest('.layout-box[role="button"]')) clearSelection();

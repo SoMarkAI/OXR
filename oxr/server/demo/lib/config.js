@@ -35,6 +35,10 @@ export function readModelOptions() {
     return options;
 }
 
+export function readParsingOptions() {
+    return { keep_header_footer: $("keep-header-footer").checked };
+}
+
 function setState(state, label) {
     $("status-state").dataset.state = state;
     $("status-state").textContent = label;

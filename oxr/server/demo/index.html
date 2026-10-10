@@ -67,6 +67,13 @@
                     <section class="config-section" aria-labelledby="parameters-title">
                         <h2 class="config-heading" id="parameters-title">Parsing Parameters</h2>
                         <div class="parameter-control">
+                            <label class="parameter-toggle" for="keep-header-footer">
+                                <span>Header &amp; Footer</span>
+                                <input id="keep-header-footer" type="checkbox" role="switch" checked aria-describedby="keep-header-footer-help">
+                            </label>
+                            <p class="parameter-help" id="keep-header-footer-help">Recognize page headers and footers. Applies to the next parse.</p>
+                        </div>
+                        <div class="parameter-control">
                             <div class="parameter-label-row">
                                 <label for="temperature-value">Temperature</label>
                                 <input id="temperature-value" type="number" min="0" max="2" step="0.01" value="0" inputmode="decimal">

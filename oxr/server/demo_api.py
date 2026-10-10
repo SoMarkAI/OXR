@@ -54,6 +54,7 @@ def _decode_and_publish(store: DemoStore, job_id: str, data: bytes, file_name: s
 async def _process_job(
     store: DemoStore, job_id: str, data: bytes, file_name: str,
     model_options: dict[str, float] | None = None,
+    keep_header_footer: bool = True,
 ) -> None:
     decode_task = None
     publish_task = None
@@ -66,6 +67,7 @@ async def _process_job(
             images,
             file_name,
             ["markdown", "json"],
+            keep_header_footer=keep_header_footer,
             model_options=model_options,
             demo=True,
             asset_dir=store.job_dir(job_id) / "images",
@@ -136,6 +138,7 @@ async def submit_demo_job(
     temperature: str = Form("0"),
     top_p: str = Form("1"),
     repetition_penalty: str = Form("1"),
+    keep_header_footer: bool = Form(True),
 ):
     # Read the raw form as well: FastAPI substitutes defaults for empty fields,
     # but explicitly blank model parameters must be rejected rather than reset.
@@ -175,7 +178,9 @@ async def submit_demo_job(
     except OSError:
         return _error("The demo's temporary storage is unavailable or full. Try again later.", 503)
     job_id = manifest["id"]
-    task = asyncio.create_task(_process_job(store, job_id, bytes(data), file_name, model_options))
+    task = asyncio.create_task(_process_job(
+        store, job_id, bytes(data), file_name, model_options, keep_header_footer,
+    ))
     request.app.state.demo_tasks[job_id] = task
     task.add_done_callback(lambda _: request.app.state.demo_tasks.pop(job_id, None))
     return _response({"id": job_id, "status": "queued"})

@@ -1,6 +1,7 @@
 import asyncio
 
 import numpy as np
+import pytest
 from oxr.config.settings import settings
 from oxr.model.client import ModelOutput
 from oxr.pipeline.models import Block, BlockType, ContentFormat
@@ -86,6 +87,27 @@ def test_recognition_outputs_table_markdown_when_requested(monkeypatch):
 
     assert result.format == ContentFormat.MARKDOWN
     assert result.content == "| A |\n| --- |\n| B |"
+
+
+@pytest.mark.parametrize("block_type", [BlockType.PAGE_HEADER, BlockType.PAGE_FOOTER])
+def test_recognition_routes_page_margins_to_text(monkeypatch, block_type):
+    calls = []
+    options = {"temperature": 0.4}
+
+    async def recognize_text(image, model_options=None):
+        calls.append((image.shape, model_options))
+        return "Recognized **margin**"
+
+    monkeypatch.setattr(settings.oxr_model, "retry_times", 1)
+    monkeypatch.setattr("oxr.pipeline.recognition.model_client.recognize_text", recognize_text)
+    result = asyncio.run(recognize_block(
+        _block(block_type), np.zeros((8, 8, 3), dtype=np.uint8),
+        asyncio.Semaphore(1), "demo.png", 0, model_options=options,
+    ))
+    assert calls == [((4, 4, 3), options)]
+    assert result.type == block_type
+    assert result.content == "Recognized **margin**"
+    assert result.format == ContentFormat.TEXT
 
 
 def test_recognition_routes_chemical_structure_smiles(monkeypatch):

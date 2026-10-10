@@ -44,6 +44,7 @@ export function createPageImage(page, mode, onSelect, currentKey) {
     wrap.append(image);
     const blocks = (page.blocks || []).map((block, position) => ({ ...block, position, key: `${page.page_num}:${position}` })).filter(validBox);
     const readingBlocks = blocks.filter((block) => !["Page-header", "Page-footer"].includes(block.type));
+    const selectableBlocks = page.keep_header_footer === true ? blocks : readingBlocks;
     // Number the same reading sequence as the arrows, independently of JSON IDs.
     const readingNumbers = new Map(readingBlocks.map((block, index) => [block.key, index + 1]));
     const overlay = svgElement("svg", { viewBox: `0 0 ${w} ${h}`, class: "layout-overlay", "aria-label": `Page ${page.page_num + 1} layout` });
@@ -69,8 +70,9 @@ export function createPageImage(page, mode, onSelect, currentKey) {
     for (const block of blocks) {
         const [x1, y1, x2, y2] = block.bbox;
         const color = categoryColor(String(block.type));
-        const displayOnly = !readingBlocks.includes(block);
-        const blockLabel = displayOnly ? String(block.type) : `[${readingNumbers.get(block.key)}] ${block.type}`;
+        const margin = !readingBlocks.includes(block);
+        const displayOnly = !selectableBlocks.includes(block);
+        const blockLabel = margin ? String(block.type) : `[${readingNumbers.get(block.key)}] ${block.type}`;
         const rect = svgElement("rect", { x: x1, y: y1, width: x2 - x1, height: y2 - y1, stroke: color, class: `layout-box${displayOnly ? " layout-box--display-only" : ""}`, "aria-label": blockLabel, "data-block-key": block.key });
         rect.style.setProperty("--box-color", color);
         const title = svgElement("title", {});
@@ -84,7 +86,7 @@ export function createPageImage(page, mode, onSelect, currentKey) {
                 const bounds = overlay.getBoundingClientRect();
                 const x = (event.clientX - bounds.left) / bounds.width * w;
                 const y = (event.clientY - bounds.top) / bounds.height * h;
-                const hits = readingBlocks.filter((candidate) => x >= candidate.bbox[0] && x <= candidate.bbox[2] && y >= candidate.bbox[1] && y <= candidate.bbox[3]);
+                const hits = selectableBlocks.filter((candidate) => x >= candidate.bbox[0] && x <= candidate.bbox[2] && y >= candidate.bbox[1] && y <= candidate.bbox[3]);
                 const selected = hits.findIndex((candidate) => candidate.key === currentKey());
                 const next = hits.length ? hits[(selected + 1) % hits.length] : block;
                 onSelect(next.key, hits.length);
