@@ -89,12 +89,14 @@ async def process_document(
     keep_header_footer: bool = False,
     model_options: Optional[Dict[str, Any]] = None,
     element_formats: Optional[Dict[str, str]] = None,
+    word_level_bboxes: bool = False,
 ) -> Dict[str, Any]:
     start_time = time.perf_counter()
     images = await asyncio.to_thread(_decode_document_images, file_bytes, file_name)
     return await process_decoded_document(
         images, file_name, output_formats, keep_header_footer,
         model_options, element_formats, started_at=start_time,
+        word_level_bboxes=word_level_bboxes,
     )
 
 
@@ -110,6 +112,7 @@ async def process_decoded_document(
     asset_dir: Optional[Path] = None,
     asset_url_prefix: str = "",
     started_at: Optional[float] = None,
+    word_level_bboxes: bool = False,
 ) -> Dict[str, Any]:
     """Recognize already-decoded pages, optionally collecting demo source maps."""
     assets = ImageAssets(Path(asset_dir), asset_url_prefix) if asset_dir is not None else None
@@ -118,6 +121,7 @@ async def process_decoded_document(
         return await _process_decoded_document(
             images, file_name, output_formats, keep_header_footer,
             model_options, element_formats, demo, started_at,
+            word_level_bboxes,
         )
     finally:
         image_assets.reset(token)
@@ -126,6 +130,7 @@ async def process_decoded_document(
 async def _process_decoded_document(
     images, file_name, output_formats, keep_header_footer,
     model_options, element_formats, demo, started_at,
+    word_level_bboxes,
 ):
     start_time = started_at if started_at is not None else time.perf_counter()
     full_overlap_dedupe = settings.pipeline.full_overlap_dedupe
@@ -254,7 +259,9 @@ async def _process_decoded_document(
         json_pages = []
         for i, blocks in enumerate(pages_blocks):
             h, w = images[i].shape[:2]
-            serialized_blocks, numbering_notes = serialize_final_blocks(blocks)
+            serialized_blocks, numbering_notes = serialize_final_blocks(
+                blocks, word_level_bboxes=word_level_bboxes,
+            )
             page_data = {
                 "page_num": i,
                 "page_size": {"w": w, "h": h},
@@ -311,7 +318,9 @@ async def _process_decoded_document(
             markdown, ranges = blocks_to_markdown_with_ranges(blocks)
             # The math postprocessor adds spaces only; source line ranges remain valid.
             markdown = space_markdown_math(markdown)
-            serialized_blocks, numbering_notes = serialize_final_blocks(blocks, ranges)
+            serialized_blocks, numbering_notes = serialize_final_blocks(
+                blocks, ranges, word_level_bboxes=word_level_bboxes,
+            )
             h, w = images[i].shape[:2]
             # Formula expansion reindexes content blocks. Give overlay-only boxes
             # separate IDs after those final indices without changing source maps.

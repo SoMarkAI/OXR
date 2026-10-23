@@ -52,6 +52,7 @@ def test_parse_sync_accepts_default_somark_element_formats(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         captured["output_formats"] = output_formats
         captured["keep_header_footer"] = keep_header_footer
@@ -145,6 +146,7 @@ def test_parse_sync_passes_feature_config_keep_header_footer(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         captured["output_formats"] = output_formats
         captured["keep_header_footer"] = keep_header_footer
@@ -195,6 +197,7 @@ def test_parse_sync_passes_extra_model_options(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         captured["keep_header_footer"] = keep_header_footer
         captured["model_options"] = model_options
@@ -249,6 +252,7 @@ def test_parse_sync_warns_for_unsupported_feature_config_true(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         return {
             "file_name": "demo.png",
@@ -293,6 +297,7 @@ def test_parse_sync_ignores_unsupported_feature_config_false(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         return {
             "file_name": "demo.png",
@@ -326,6 +331,7 @@ def test_parse_async_warnings_keep_submit_message_stable(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         return {
             "file_name": file_name,
@@ -389,6 +395,7 @@ def test_async_check_returns_somark_style_result(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         return {
             "file_name": file_name,
@@ -428,6 +435,7 @@ def test_async_check_preserves_debug_metadata(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         return {
             "file_name": file_name,
