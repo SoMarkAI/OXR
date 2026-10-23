@@ -277,6 +277,17 @@ curl --fail-with-body http://localhost:8000/v1/parse/sync \
   -F 'output_formats=json'
 ```
 
+To parse only some pages of a PDF, pass `page_range` as 1-based page numbers or inclusive spans, separated by commas. Only those pages are rendered and recognized. JSON `page_num` values stay the original 0-based page indexes from the file. Response metadata includes `total_pages` and, when a range is set, `selected_pages` (1-based). Images are a single page: only `1` is valid.
+
+```Bash
+curl --fail-with-body http://localhost:8000/v1/parse/sync \
+  -F 'file=@document.pdf' \
+  -F 'api_key=dummy' \
+  -F 'output_formats=markdown' \
+  -F 'output_formats=json' \
+  -F 'page_range=1-3,5,8-10'
+```
+
 SoMark provides a full set of CLI and SDK tools for document parsing in Python and JavaScript. OXR is compatible with their document parsing interfaces, so you can use them by changing the baseURL. For more information, see https://docs.somark.ai/en/cli-sdk.
 
 ```Bash

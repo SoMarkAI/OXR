@@ -1,11 +1,13 @@
 class PipelineError(RuntimeError):
     def __init__(
         self, message: str, status_code: int = 500, *, public_message: str | None = None,
+        api_code: int | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
         # Only fixed, application-owned messages may be marked public.
         self.public_message = public_message
+        self.api_code = api_code
 
 
 def get_public_error_message(error: Exception) -> str:
