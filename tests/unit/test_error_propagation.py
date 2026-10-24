@@ -92,6 +92,7 @@ def test_parse_sync_returns_somark_error_envelope(monkeypatch):
         keep_header_footer=False,
         model_options=None,
         element_formats=None,
+        word_level_bboxes=False,
     ):
         raise PipelineError("Layout analysis failed after 1 attempts: Error code: 503", status_code=503)
 
