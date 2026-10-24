@@ -9,7 +9,8 @@ from typing import Any, Dict, Optional
 
 from oxr.config.settings import settings
 from oxr.model.client import model_client
-from oxr.utils.pdf import pdf_to_images
+from oxr.utils.page_range import PageRangeError, resolve_page_indices
+from oxr.utils.pdf import pdf_to_images, render_pdf_pages
 from oxr.pipeline.layout import analyze_layouts
 from oxr.pipeline.concurrency import gather_cancel_on_error
 from oxr.pipeline.errors import PipelineError
@@ -57,14 +58,36 @@ def _dedupe_full_page(raw: list[Block] | None, blocks: list[Block], image: np.nd
     return dedupe_visual_parents(raw, recheck, image, allow_mixed_children=True)
 
 
-def _decode_document_images(file_bytes: bytes, file_name: str) -> list[np.ndarray]:
+def _invalid_page_range(error: PageRangeError) -> PipelineError:
+    return PipelineError(
+        str(error), public_message=str(error), api_code=1133,
+    )
+
+
+def _load_document_pages(
+    file_bytes: bytes,
+    file_name: str,
+    page_range: list[int] | None = None,
+) -> tuple[list[np.ndarray], list[int], int]:
     ext = os.path.splitext(file_name)[1].lower()
     try:
         if ext == ".pdf":
-            images = pdf_to_images(file_bytes)
+            if page_range is None:
+                images = pdf_to_images(file_bytes)
+                total_pages = len(images)
+                page_numbers = list(range(total_pages))
+            else:
+                images, total_pages = render_pdf_pages(file_bytes, page_indices=page_range)
+                page_numbers = list(page_range)
         else:
             np_arr = np.frombuffer(file_bytes, np.uint8)
             images = [cv2.imdecode(np_arr, cv2.IMREAD_COLOR)]
+            total_pages = 1
+            page_numbers = resolve_page_indices(page_range, total_pages)
+    except PageRangeError as error:
+        raise _invalid_page_range(error) from error
+    except PipelineError:
+        raise
     except Exception as error:
         raise PipelineError(
             INVALID_DOCUMENT_MESSAGE, public_message=INVALID_DOCUMENT_MESSAGE,
@@ -79,6 +102,11 @@ def _decode_document_images(file_bytes: bytes, file_name: str) -> list[np.ndarra
         for image in images
     ):
         raise PipelineError(INVALID_DOCUMENT_MESSAGE, public_message=INVALID_DOCUMENT_MESSAGE)
+    return images, page_numbers, total_pages
+
+
+def _decode_document_images(file_bytes: bytes, file_name: str) -> list[np.ndarray]:
+    images, _page_numbers, _total_pages = _load_document_pages(file_bytes, file_name)
     return images
 
 
@@ -89,12 +117,25 @@ async def process_document(
     keep_header_footer: bool = False,
     model_options: Optional[Dict[str, Any]] = None,
     element_formats: Optional[Dict[str, str]] = None,
+    page_range: Optional[list[int]] = None,
 ) -> Dict[str, Any]:
     start_time = time.perf_counter()
-    images = await asyncio.to_thread(_decode_document_images, file_bytes, file_name)
+    if page_range is None:
+        images = await asyncio.to_thread(_decode_document_images, file_bytes, file_name)
+        page_numbers = list(range(len(images)))
+        total_pages = len(images)
+        selected_pages = None
+    else:
+        images, page_numbers, total_pages = await asyncio.to_thread(
+            _load_document_pages, file_bytes, file_name, page_range,
+        )
+        selected_pages = [index + 1 for index in page_numbers]
     return await process_decoded_document(
         images, file_name, output_formats, keep_header_footer,
         model_options, element_formats, started_at=start_time,
+        page_numbers=page_numbers,
+        total_pages=total_pages,
+        selected_pages=selected_pages,
     )
 
 
@@ -110,6 +151,9 @@ async def process_decoded_document(
     asset_dir: Optional[Path] = None,
     asset_url_prefix: str = "",
     started_at: Optional[float] = None,
+    page_numbers: Optional[list[int]] = None,
+    total_pages: Optional[int] = None,
+    selected_pages: Optional[list[int]] = None,
 ) -> Dict[str, Any]:
     """Recognize already-decoded pages, optionally collecting demo source maps."""
     assets = ImageAssets(Path(asset_dir), asset_url_prefix) if asset_dir is not None else None
@@ -118,6 +162,7 @@ async def process_decoded_document(
         return await _process_decoded_document(
             images, file_name, output_formats, keep_header_footer,
             model_options, element_formats, demo, started_at,
+            page_numbers, total_pages, selected_pages,
         )
     finally:
         image_assets.reset(token)
@@ -126,10 +171,14 @@ async def process_decoded_document(
 async def _process_decoded_document(
     images, file_name, output_formats, keep_header_footer,
     model_options, element_formats, demo, started_at,
+    page_numbers, total_pages, selected_pages,
 ):
     start_time = started_at if started_at is not None else time.perf_counter()
     full_overlap_dedupe = settings.pipeline.full_overlap_dedupe
     ext = os.path.splitext(file_name)[1].lower()
+    original_page_numbers = (
+        list(page_numbers) if page_numbers is not None else list(range(len(images)))
+    )
     page_num = len(images)
     decode_end_time = time.perf_counter()
 
@@ -256,7 +305,7 @@ async def _process_decoded_document(
             h, w = images[i].shape[:2]
             serialized_blocks, numbering_notes = serialize_final_blocks(blocks)
             page_data = {
-                "page_num": i,
+                "page_num": original_page_numbers[i],
                 "page_size": {"w": w, "h": h},
                 "merge_content_from_pre_page": False, # Basic placeholder
                 "blocks": serialized_blocks,
@@ -274,8 +323,11 @@ async def _process_decoded_document(
     metadata = {
         "page_num": page_num,
         "file_type": ext,
-        "processing_time_ms": int((end_time - start_time) * 1000)
+        "processing_time_ms": int((end_time - start_time) * 1000),
+        "total_pages": page_num if total_pages is None else total_pages,
     }
+    if selected_pages is not None:
+        metadata["selected_pages"] = list(selected_pages)
 
     if settings.debug:
         block_counts: Dict[str, int] = {}
@@ -326,7 +378,7 @@ async def _process_decoded_document(
                 for offset, b in enumerate(demo_page_margins[i] if not keep_header_footer else [])
             ]
             demo_page = {
-                "page_num": i,
+                "page_num": original_page_numbers[i],
                 "page_size": {"w": w, "h": h},
                 "markdown": markdown,
                 "blocks": sorted(serialized_blocks, key=lambda b: b["idx"]) + margin_blocks,

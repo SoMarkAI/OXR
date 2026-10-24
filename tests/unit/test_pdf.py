@@ -114,3 +114,58 @@ def test_pdfium_lock_is_released_after_native_failure(monkeypatch, stage):
     with ThreadPoolExecutor(max_workers=1) as pool:
         result = pool.submit(pdf.pdf_to_images, b"healthy").result(timeout=2)
     assert np.array_equal(result[0], expected)
+
+
+def test_pdf_to_images_renders_only_selected_pages(monkeypatch):
+    expected, png = _png()
+    rendered = []
+
+    class Page:
+        def __init__(self, index):
+            self.index = index
+
+        def render(self, *, dpi):
+            assert dpi == 150
+            rendered.append(self.index)
+            return png
+
+    class Document:
+        def __init__(self):
+            self.pages = [Page(0), Page(1), Page(2)]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(pdf.sopdf, "open", lambda *, stream: Document())
+    images = pdf.pdf_to_images(b"doc", page_indices=[0, 2])
+    assert rendered == [0, 2]
+    assert len(images) == 2
+    assert np.array_equal(images[0], expected)
+    images, total = pdf.render_pdf_pages(b"doc", page_indices=[2])
+    assert total == 3
+    assert rendered == [0, 2, 2]
+    assert len(images) == 1
+
+
+def test_pdf_to_images_rejects_out_of_range_page_indices(monkeypatch):
+    _, png = _png()
+
+    class Page:
+        def render(self, *, dpi):
+            raise AssertionError("out-of-range pages must not be rendered")
+
+    class Document:
+        pages = [Page()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(pdf.sopdf, "open", lambda *, stream: Document())
+    with pytest.raises(pdf.PageRangeError, match="exceeds document length \\(1 pages\\)"):
+        pdf.pdf_to_images(b"doc", page_indices=[1])
