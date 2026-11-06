@@ -276,6 +276,18 @@ curl --fail-with-body http://localhost:8000/v1/parse/sync \
   -F 'output_formats=json'
 ```
 
+JSON 中每个版面块目前只有一个包围盒。若要在文本类区域（`Text`、`Title`、`Caption`、`Footnote`、`Page-header`、`Page-footer`、`Stamp`）上额外返回逐词坐标，请开启 `feature_config.word_level_bboxes`。
+
+```Bash
+curl --fail-with-body http://localhost:8000/v1/parse/sync \
+  -F 'file=@document.pdf' \
+  -F 'api_key=dummy' \
+  -F 'output_formats=json' \
+  -F 'feature_config={"word_level_bboxes":true}'
+```
+
+开启后，对应区域会带上 `words` 数组，每项为 `{text, bbox}`。词框由识别文本在父区域内部按几何比例切分得到：西文按空白分词，中日韩按字切分。多行区域自上而下分配；瘦高的单行区域按竖排处理。区域级包围盒和 Markdown 输出保持不变。该选项默认关闭。
+
 SoMark 为解析业务封装了完善的 CLI & SDK，并提供了 python 和 js 两种语言的支持。本 OXR 项目兼容该 CLI 和 SDK 的文档解析接口，可以直接替换baseURL后使用。更多信息可以查阅该文档：https://docs.somark.ai/en/cli-sdk
 
 ```Bash

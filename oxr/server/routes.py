@@ -41,7 +41,8 @@ FUNCTIONAL_ELEMENT_FORMATS = {
     "table": {"html", "markdown"},
     "cs": {"smiles", "image"},
 }
-FEATURE_CONFIG_SUPPORTED_KEYS = {"keep_header_footer"}
+FEATURE_CONFIG_SUPPORTED_KEYS = {"keep_header_footer", "word_level_bboxes"}
+FEATURE_CONFIG_BOOL_KEYS = ("keep_header_footer", "word_level_bboxes")
 MODEL_OPTION_RANGES = {
     "temperature": (0.0, 2.0, True),
     "top_p": (0.0, 1.0, True),
@@ -53,6 +54,7 @@ MODEL_OPTION_RANGES = {
 class ParseRequestOptions:
     output_formats: List[str] = field(default_factory=lambda: DEFAULT_OUTPUT_FORMATS.copy())
     keep_header_footer: bool = False
+    word_level_bboxes: bool = False
     model_options: Dict[str, float] = field(default_factory=dict)
     element_formats: Dict[str, str] = field(default_factory=lambda: DEFAULT_ELEMENT_FORMATS.copy())
     warnings: List[str] = field(default_factory=list)
@@ -110,25 +112,36 @@ def _parse_model_option(config: Dict[str, Any], key: str) -> Optional[float]:
     return parsed_value
 
 
-def _parse_feature_config(feature_config: Optional[str]) -> tuple[bool, List[str], List[str]]:
+def _supported_feature_config_keys() -> str:
+    return ", ".join(f"feature_config.{key}" for key in sorted(FEATURE_CONFIG_SUPPORTED_KEYS))
+
+
+def _parse_feature_config(
+    feature_config: Optional[str],
+) -> tuple[bool, bool, List[str], List[str]]:
     warnings: List[str] = []
     errors: List[str] = []
+    flags = {key: False for key in FEATURE_CONFIG_BOOL_KEYS}
     if not feature_config:
-        return False, warnings, errors
+        return flags["keep_header_footer"], flags["word_level_bboxes"], warnings, errors
     try:
         config = json.loads(feature_config)
     except json.JSONDecodeError as exc:
         errors.append("feature_config must be a JSON object.")
-        return False, warnings, errors
+        return flags["keep_header_footer"], flags["word_level_bboxes"], warnings, errors
 
     if not isinstance(config, dict):
         errors.append("feature_config must be a JSON object.")
-        return False, warnings, errors
+        return flags["keep_header_footer"], flags["word_level_bboxes"], warnings, errors
 
-    keep_header_footer = config.get("keep_header_footer", False)
-    if not isinstance(keep_header_footer, bool):
-        errors.append("feature_config.keep_header_footer must be a boolean.")
-        keep_header_footer = False
+    for key in FEATURE_CONFIG_BOOL_KEYS:
+        if key not in config:
+            continue
+        value = config[key]
+        if not isinstance(value, bool):
+            errors.append(f"feature_config.{key} must be a boolean.")
+            continue
+        flags[key] = value
 
     for key, value in sorted(config.items()):
         if key in FEATURE_CONFIG_SUPPORTED_KEYS:
@@ -137,9 +150,10 @@ def _parse_feature_config(feature_config: Optional[str]) -> tuple[bool, List[str
             errors.append(f"feature_config.{key} must be a boolean.")
         elif value:
             warnings.append(
-                f"feature_config.{key}=true is accepted but ignored; open-source OXR only implements feature_config.keep_header_footer."
+                f"feature_config.{key}=true is accepted but ignored; "
+                f"open-source OXR only implements {_supported_feature_config_keys()}."
             )
-    return keep_header_footer, warnings, errors
+    return flags["keep_header_footer"], flags["word_level_bboxes"], warnings, errors
 
 
 def _parse_extra(extra: Optional[str]) -> tuple[Dict[str, float], List[str]]:
@@ -236,7 +250,9 @@ def _parse_request_options(
     errors: List[str] = []
     parsed_output_formats, output_errors = _parse_output_formats(output_formats)
     element_format_options, element_errors = _parse_element_formats(element_formats)
-    keep_header_footer, feature_warnings, feature_errors = _parse_feature_config(feature_config)
+    keep_header_footer, word_level_bboxes, feature_warnings, feature_errors = _parse_feature_config(
+        feature_config,
+    )
     model_options, extra_errors = _parse_extra(extra)
     errors.extend(output_errors)
     errors.extend(element_errors)
@@ -247,6 +263,7 @@ def _parse_request_options(
     return ParseRequestOptions(
         output_formats=parsed_output_formats,
         keep_header_footer=keep_header_footer,
+        word_level_bboxes=word_level_bboxes,
         model_options=model_options,
         element_formats=element_format_options,
         warnings=feature_warnings,
@@ -268,6 +285,7 @@ async def process_task_background(
     keep_header_footer: bool,
     model_options: Dict[str, float],
     element_formats: Dict[str, str],
+    word_level_bboxes: bool,
 ):
     await task_store.set_processing(task_id)
     try:
@@ -278,6 +296,7 @@ async def process_task_background(
             keep_header_footer=keep_header_footer,
             model_options=model_options,
             element_formats=element_formats,
+            word_level_bboxes=word_level_bboxes,
         )
         store_result = {
             "file_name": result["file_name"],
@@ -316,6 +335,7 @@ async def parse_sync(
             keep_header_footer=options.keep_header_footer,
             model_options=options.model_options,
             element_formats=options.element_formats,
+            word_level_bboxes=options.word_level_bboxes,
         )
         return SyncParseResponse(
             message="任务成功",
@@ -365,6 +385,7 @@ async def parse_async(
         options.keep_header_footer,
         options.model_options,
         options.element_formats,
+        options.word_level_bboxes,
     )
     
     return AsyncSubmitResponse(

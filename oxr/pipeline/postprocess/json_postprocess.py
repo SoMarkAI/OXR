@@ -4,6 +4,7 @@ import re
 
 from oxr.pipeline.models import Block, BlockType
 from oxr.pipeline.postprocess.formula_postprocess import FORMULA_NUMBERING_ROLE
+from oxr.pipeline.postprocess.word_boxes import WORD_BLOCK_TYPES, estimate_word_boxes
 
 
 def _numbered_content(content: str, before: str, after: str) -> str:
@@ -19,7 +20,10 @@ def _numbered_content(content: str, before: str, after: str) -> str:
 
 
 def serialize_final_blocks(
-    blocks: list[Block], source_ranges: dict[int, tuple[int, int]] | None = None,
+    blocks: list[Block],
+    source_ranges: dict[int, tuple[int, int]] | None = None,
+    *,
+    word_level_bboxes: bool = False,
 ) -> tuple[list[dict], list[dict]]:
     """Fold surviving number witnesses into their formula; retain orphan text as notes.
 
@@ -67,5 +71,7 @@ def serialize_final_blocks(
             ) if idx in source_ranges]
             region["start_line"] = min(span[0] for span in spans) if spans else None
             region["end_line"] = max(span[1] for span in spans) if spans else None
+        if word_level_bboxes and block.type in WORD_BLOCK_TYPES:
+            region["words"] = estimate_word_boxes(block.content, block.bbox)
         serialized.append(region)
     return serialized, notes

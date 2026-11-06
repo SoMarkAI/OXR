@@ -277,6 +277,18 @@ curl --fail-with-body http://localhost:8000/v1/parse/sync \
   -F 'output_formats=json'
 ```
 
+JSON regions currently include one bounding box per layout block. To also attach per-word boxes on textual regions (`Text`, `Title`, `Caption`, `Footnote`, `Page-header`, `Page-footer`, `Stamp`), pass `feature_config.word_level_bboxes`.
+
+```Bash
+curl --fail-with-body http://localhost:8000/v1/parse/sync \
+  -F 'file=@document.pdf' \
+  -F 'api_key=dummy' \
+  -F 'output_formats=json' \
+  -F 'feature_config={"word_level_bboxes":true}'
+```
+
+Each matching region then includes a `words` array of `{text, bbox}` entries. Word boxes are estimated by splitting the recognized string inside the parent region (whitespace-separated tokens for Latin text, one box per glyph for CJK). Multi-line regions stack top to bottom; a tall single-line region is treated as vertical text. Region-level boxes and Markdown output are unchanged. The option is off by default.
+
 SoMark provides a full set of CLI and SDK tools for document parsing in Python and JavaScript. OXR is compatible with their document parsing interfaces, so you can use them by changing the baseURL. For more information, see https://docs.somark.ai/en/cli-sdk.
 
 ```Bash
