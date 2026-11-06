@@ -63,7 +63,8 @@ async def analyze_layouts(
     resolved_client = client or (
         LayoutAnalyzeClient(resolved_config) if owns_client else layout_client
     )
-    encoded_images = resolved_client.encode_images(images)
+    # Page encodes are CPU-bound; keep them off the event loop.
+    encoded_images = await asyncio.to_thread(resolved_client.encode_images, images)
     image_sizes = [(int(image.shape[1]), int(image.shape[0])) for image in images]
     batches = [
         (

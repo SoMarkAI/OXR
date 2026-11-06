@@ -5,6 +5,7 @@ import httpx
 import numpy as np
 
 from oxr.config.settings import LayoutAnalyzeModelConfig, settings
+from oxr.utils.image import PNG_ENCODE_PARAMS
 
 
 class LayoutAnalyzeClient:
@@ -34,7 +35,7 @@ class LayoutAnalyzeClient:
     def encode_images(self, images: Sequence[np.ndarray]) -> list[bytes]:
         encoded_images: list[bytes] = []
         for image in images:
-            success, encoded = cv2.imencode(".png", image)
+            success, encoded = cv2.imencode(".png", image, PNG_ENCODE_PARAMS)
             if not success:
                 raise ValueError("Unable to encode image as PNG.")
             encoded_images.append(encoded.tobytes())

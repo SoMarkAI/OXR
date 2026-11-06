@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 import numpy as np
 import pytest
@@ -52,6 +53,30 @@ def test_analyze_layouts_passes_configured_score_threshold(monkeypatch):
     assert captured["image_sizes"] == [(9, 8)]
     assert captured["score_threshold"] == 0.73
     assert captured["nms_iou_threshold"] == 0.6
+
+
+def test_analyze_layouts_encodes_pages_off_the_event_loop(monkeypatch):
+    encode_threads = []
+
+    def encode_images(_images):
+        encode_threads.append(threading.get_ident())
+        return [b"page"]
+
+    async def request_batch(encoded_images):
+        return response_for(encoded_images)
+
+    monkeypatch.setattr("oxr.pipeline.layout.layout_client.encode_images", encode_images)
+    monkeypatch.setattr("oxr.pipeline.layout.layout_client.request_batch", request_batch)
+    monkeypatch.setattr(settings.layout_analyze_model, "retry_times", 1)
+
+    async def run():
+        await analyze_layouts([np.zeros((8, 9, 3), dtype=np.uint8)])
+        return threading.get_ident()
+
+    loop_thread = asyncio.run(run())
+
+    assert len(encode_threads) == 1
+    assert encode_threads[0] != loop_thread
 
 
 def test_analyze_layouts_batches_concurrently_and_restores_document_order(monkeypatch):

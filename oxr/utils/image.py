@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 
+# PNG is lossless at every level; level 1 encodes several times faster than
+# OpenCV's default (3) for slightly larger payloads sent over localhost.
+PNG_ENCODE_PARAMS = [cv2.IMWRITE_PNG_COMPRESSION, 1]
+
 
 def resize_image(image: np.ndarray, scale: float) -> np.ndarray:
     """Resize an image isotropically while keeping both dimensions nonzero."""

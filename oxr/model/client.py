@@ -8,6 +8,7 @@ import numpy as np
 from openai import AsyncOpenAI, DefaultAsyncHttpxClient
 
 from oxr.config.settings import OXRModelConfig, settings
+from oxr.utils.image import PNG_ENCODE_PARAMS
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class OXRModelClient:
             self._request_semaphore = None
 
     def _encode_image(self, image: np.ndarray) -> str:
-        success, buffer = cv2.imencode(".png", image)
+        success, buffer = cv2.imencode(".png", image, PNG_ENCODE_PARAMS)
         if not success:
             raise ValueError("Unable to encode image as PNG.")
         return base64.b64encode(buffer).decode("utf-8")
@@ -120,10 +121,14 @@ class OXRModelClient:
         if image is None:
             raise ValueError("An image is required for vision model calls.")
 
+        # Encoding is CPU-bound and runs once per region crop; doing it on the
+        # event loop serializes every concurrent request behind it. cv2
+        # releases the GIL, so worker threads encode in parallel.
+        data_url = await asyncio.to_thread(self._image_to_data_url, image)
         content = [
             {
                 "type": "image_url",
-                "image_url": {"url": self._image_to_data_url(image)},
+                "image_url": {"url": data_url},
             },
             {"type": "text", "text": prompt},
         ]

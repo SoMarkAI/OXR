@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import threading
 from types import SimpleNamespace
 
 import cv2
@@ -103,6 +104,30 @@ def test_vision_requests_use_lossless_png_images():
     )
     assert prefix == "data:image/png;base64"
     assert np.array_equal(decoded, image)
+
+
+def test_vision_request_encodes_image_off_the_event_loop(monkeypatch):
+    client = OXRModelClient()
+    client._client = FakeClient()
+    encode_threads = []
+    original = client._image_to_data_url
+
+    def recording_encode(image):
+        encode_threads.append(threading.get_ident())
+        return original(image)
+
+    monkeypatch.setattr(client, "_image_to_data_url", recording_encode)
+
+    async def call():
+        await client._call_vision_model(
+            prompt="prompt", image=np.zeros((8, 8, 3), dtype=np.uint8), timeout=1
+        )
+        return threading.get_ident()
+
+    loop_thread = asyncio.run(call())
+
+    assert len(encode_threads) == 1
+    assert encode_threads[0] != loop_thread
 
 
 def test_reading_order_uses_deterministic_options_and_max_token_override():
