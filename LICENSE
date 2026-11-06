@@ -1,65 +1,72 @@
-# OXR License
+# OXR Open Source License
 
-Copyright (c) 2026 SoMark Team
+Copyright (c) 2026 Shanghai Shoukou Technology Co., Ltd. (上海守扣科技有限公司)
+
+"Licensor" means 上海守扣科技有限公司 (Shanghai Shoukou Technology Co., Ltd.).
 
 OXR is licensed under the Apache License, Version 2.0, subject to the
 additional terms below. These additional terms take precedence in the event
 of a conflict; otherwise, Apache License 2.0 applies.
 
-## 1. Commercial License and Thresholds
+## 1. Thresholds and Commercial License
 
-Commercial use of OXR and its Derivative Works is permitted without a
-separate commercial license only while you and your Affiliates, on a
-consolidated basis, do not exceed either of the following thresholds:
+You may use OXR and its Derivative Works without a separate commercial
+license, including for internal use and to Provide products or services to
+Third Parties, whether free or paid, unless either of the following applies
+to you and your Affiliates, on a consolidated basis:
 
-(a) USD 2,000,000 in Total Funding; or
-(b) USD 2,000,000 in Annual Revenue.
+(a) Total Funding exceeds USD 2,000,000; or
+(b) Annual Revenue exceeds USD 2,000,000.
 
-If either threshold is exceeded, you must obtain a separate commercial
-license from SoMark Team before commencing or continuing commercial use.
-Being below these thresholds does not waive any other term of this License,
-including the competing hosted API restriction in Section 3.
+If either of the above applies, you must obtain a separate written commercial
+license from Licensor before commencing or continuing any use of OXR or its
+Derivative Works, whether internal use or Providing products or services to
+Third Parties, and whether free or paid.
 
-## 2. Online Service Attribution
+Personal use and non-commercial research, including academic research,
+benchmarking, evaluation, and teaching, are exempt from this Section.
 
-When providing an online service to third parties using OXR or its Derivative
-Works, you must prominently identify SoMark OXR in the service's user interface or
-publicly accessible documentation.
+## 2. Attribution
 
-## 3. Competing Hosted API Services
+If you use OXR or its Derivative Works to Provide products or services to
+Third Parties without a separate commercial license under Section 1, you must
+prominently display "Powered by SoMark OXR", linked to
+https://github.com/SoMarkAI/OXR , in the user interface of the relevant
+product or service. If the product or service has no user interface, you must
+display this statement and link in its publicly accessible documentation,
+about page, or API documentation, or, if none of these exists, in the
+deliverables or service agreement provided to the Third Party. Where a
+hyperlink cannot be used, you must display the full URL.
 
-Unless expressly authorized in advance by a separate written license from
-SoMark Team, you may not use OXR or its Derivative Works to offer, operate,
-or make available to third parties a hosted API service that competes with
-a hosted API service offered by SoMark Team or its Affiliates.
-
-This restriction includes services offered through a reseller, a white-label
-arrangement, or an intermediary interface, whether paid or free. A competing
-hosted API service is one whose principal functionality provides document
-parsing, optical character recognition (OCR), document layout analysis, or
-document content extraction as a substitute for substantially similar
-functionality of a hosted API service offered by SoMark Team or its Affiliates.
-
-This restriction applies regardless of Total Funding or Annual Revenue.
-Use solely within your organization and its Affiliates, without offering such
-a service to third parties, is not prohibited by this Section; all other
-terms of this License still apply.
-
-## 4. Termination
+## 3. Termination
 
 Your rights under this License terminate automatically, without notice from
-SoMark Team, if you fail to obtain a commercial license as required by
-Section 1, fail to comply with Section 2, or violate Section 3.
+Licensor, if you fail to obtain a commercial license as required by Section 1
+or fail to comply with Section 2.
 
-## 5. Definitions and Scope
+## 4. Definitions and Scope
 
 "Affiliates" are entities that directly or indirectly control you, are
 controlled by you, or share common control with you. "Control" means the
 power to direct an entity's management or operations through ownership,
 voting rights, contractual rights, or other means.
 
-"Total Funding" means cumulative equity and debt financing raised from all
-sources by you and your Affiliates, on a consolidated basis, excluding
+"Provide to Third Parties" (and "Providing to Third Parties") means making
+available to any person or entity other than you and your Affiliates
+("Third Parties") any product or service that incorporates or uses OXR, its
+Derivative Works, or any functionality based on them, by any means, whether
+online or offline, including (i) hosted or remote access, such as SaaS, API,
+or web services; (ii) distribution of copies, such as software, SDKs,
+applications, or devices, or deployment on a customer's own servers; and
+(iii) performing services for Third Parties using OXR or its Derivative
+Works, including document parsing, data processing, data labeling,
+outsourcing, or consulting services, or delivering outputs or results
+generated by OXR, whether or not any product is delivered. Use solely by you
+and your Affiliates, including by employees and contractors acting on your
+behalf, is internal use and is not Providing to Third Parties.
+
+"Total Funding" means the total equity or debt funding raised from any
+source by you and your Affiliates, on a consolidated basis, excluding
 intra-group transactions to avoid double counting.
 
 "Annual Revenue" means the gross revenue of you and your Affiliates for the
@@ -72,63 +79,69 @@ redistributing OXR or its Derivative Works, you must include these additional
 terms together with Apache License 2.0. Third-party components separately
 identified as being under other licenses remain governed by those licenses.
 
+If you have entered into a separate written agreement with Licensor regarding
+OXR, that agreement prevails over this License to the extent of any conflict.
+
 The full text of Apache License 2.0 is available at
 https://www.apache.org/licenses/LICENSE-2.0 .
 
 ---
 
-# OXR 许可协议
+# OXR 开源许可协议
 
-版权所有 (c) 2026 SoMark Team
+版权所有 (c) 2026 上海守扣科技有限公司
+
+本许可中的“许可方”指上海守扣科技有限公司。
 
 OXR 依据 Apache License 2.0 进行许可，同时受下列附加条款约束。若存在冲突，
 以本附加条款为准；其他事项适用 Apache License 2.0。
 
-## 1. 商业许可与门槛
+## 1. 规模门槛与商业许可
 
-仅当您及您的关联方按合并口径计算，均未超过以下任一门槛时，方可无需另行
-取得商业许可而将 OXR 及其衍生作品用于商业用途：
+您可以无需另行取得商业许可而使用 OXR 及其衍生作品，包括内部使用，以及向
+第三方提供免费或收费的产品或服务，但您及您的关联方按合并口径计算，出现
+以下任一情形的除外：
 
-(a) 累计融资总额 2,000,000 美元；或
-(b) 年度总收入 2,000,000 美元。
+(a) 累计融资总额超过 2,000,000 美元；或
+(b) 年度总收入超过 2,000,000 美元。
 
-一旦超过任一门槛，您必须在开始或继续商业使用之前，从 SoMark Team 取得
-单独的商业许可。未超过上述门槛并不免除本许可中的其他义务，包括第 3 条
-关于竞争性托管 API 服务的限制。
+出现上述任一情形的，无论是内部使用还是向第三方提供产品或服务，也无论
+免费或收费，您均须在开始或继续使用 OXR 或其衍生作品之前，从许可方取得
+单独的书面商业许可。
 
-## 2. 在线服务标识义务
+个人使用及非商业研究（包括学术研究、基准测试、评测和教学）不受本条限制。
 
-如果您使用 OXR 或其衍生作品向第三方提供在线服务，必须在该服务的用户界面
-或公开可访问的文档中，显著标明使用了 SoMark OXR。
+## 2. 标识义务
 
-## 3. 竞争性托管 API 服务限制
+如果您未另行取得商业许可，而依第 1 条使用 OXR 或其衍生作品向第三方提供
+产品或服务，须在相关产品或服务的用户界面中显著展示“Powered by SoMark OXR”
+字样，并链接至 https://github.com/SoMarkAI/OXR ；若该产品或服务无用户界面，
+须在其公开可访问的文档、关于页面或 API 文档中展示该字样及链接；若以上均
+不存在，须在向第三方提供的交付物或服务协议中展示。无法使用超链接的，须
+展示完整网址。
 
-除非事先通过与 SoMark Team 签订单独的书面许可取得明确授权，否则您不得
-使用 OXR 或其衍生作品，向第三方提供、运营或开放与 SoMark Team 或其关联方
-所提供的托管 API 服务构成竞争的托管 API 服务。
+## 3. 许可终止
 
-本限制包括通过转售、白标或中间接口提供的服务，无论收费或免费。竞争性
-托管 API 服务，是指以文档解析、光学字符识别（OCR）、文档版面分析或文档
-内容提取为主要功能，并能够替代 SoMark Team 或其关联方提供的托管 API
-服务中实质相似功能的服务。
+如果您未按第 1 条要求取得商业许可，或未遵守第 2 条标识义务，您在本许可
+项下的权利将自动终止，许可方无须另行通知。
 
-本限制不受累计融资总额或年度总收入门槛影响。仅在您所属组织及其关联方内部
-使用，且不向第三方提供上述服务的，不属于本条禁止的行为；本许可的其他
-条款仍然适用。
-
-## 4. 许可终止
-
-如果您未按第 1 条要求取得商业许可、未遵守第 2 条标识义务，或违反第 3 条，
-您在本许可项下的权利将自动终止，SoMark Team 无须另行通知。
-
-## 5. 定义与适用范围
+## 4. 定义与适用范围
 
 “关联方”是指直接或间接控制您、受您控制，或与您处于共同控制之下的实体。
 “控制”是指通过所有权、表决权、合同权利或其他方式，决定某一实体管理或
 经营事项的能力。
 
-“累计融资总额”是指您及您的关联方按合并口径计算，从所有来源累计取得的
-股权融资和债务融资总额，剔除集团内部交易以避免重复计算。
+“向第三方提供”是指以任何方式（无论在线或离线），向您及您关联方以外的
+任何个人或实体（“第三方”）提供包含或使用了 OXR、其衍生作品或基于其的
+功能的产品或服务，包括：(i) SaaS、API、网页服务等托管或远程访问方式；
+(ii) 以软件、SDK、应用程序、设备等形式分发副本，或部署在客户自有服务器
+上；以及 (iii) 使用 OXR 或其衍生作品为第三方提供服务，包括文档解析、数据
+处理、数据标注、外包或咨询等服务，或向第三方交付由 OXR 生成的输出或结果，
+无论是否交付任何产品。仅由您及您的关联方使用（包括代表您工作的员工和
+承包商）的，属于内部使用，不属于向第三方提供。
+
+“累计融资总额”是指您及您的关联方按合并口径计算，从任何来源累计取得的
+股权或债务融资总额，剔除集团内部交易以避免重复计算。
 
 “年度总收入”是指您及您的关联方最近一个已结束财年的总收入，按合并口径
 计算，并剔除集团内部交易以避免重复计算。其他币种金额按其等值美元计算。
@@ -136,5 +149,8 @@ OXR 依据 Apache License 2.0 进行许可，同时受下列附加条款约束�
 “衍生作品”的含义与 Apache License 2.0 中的定义一致。再分发 OXR 或其
 衍生作品时，必须同时附上本附加条款和 Apache License 2.0。单独标明适用
 其他许可的第三方组件，仍受各自许可约束。
+
+如您已就 OXR 与许可方另行签订书面协议，在与本许可冲突的范围内，以该协议
+为准。
 
 Apache License 2.0 全文见：https://www.apache.org/licenses/LICENSE-2.0 。
