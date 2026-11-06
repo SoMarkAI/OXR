@@ -66,7 +66,18 @@ def serve(
         None,
         "--layout-analyze-model-provides-reading-order/--no-layout-analyze-model-provides-reading-order",
     ),
+    oxr_model_backend: Optional[str] = typer.Option(
+        None,
+        "--oxr-model-backend",
+        help="Recognition backend: 'remote' (OpenAI-compatible server) or 'mlx' (in-process, Apple Silicon).",
+    ),
     oxr_model_url: Optional[str] = typer.Option(None, "--oxr-model-url"),
+    oxr_model_path: Optional[str] = typer.Option(
+        None,
+        "--oxr-model-path",
+        help="OXR-1.0 checkpoint directory, used when the backend is 'mlx'.",
+    ),
+    oxr_model_dtype: Optional[str] = typer.Option(None, "--oxr-model-dtype"),
     oxr_model_name: Optional[str] = typer.Option(None, "--oxr-model-name"),
     oxr_model_max_tokens: Optional[int] = typer.Option(None, "--oxr-model-max-tokens"),
     oxr_model_max_concurrency: Optional[int] = typer.Option(None, "--oxr-model-max-concurrency"),
@@ -144,6 +155,12 @@ def serve(
         layout.provides_reading_order = layout_analyze_model_provides_reading_order
 
     oxr = settings.oxr_model
+    if oxr_model_backend is not None:
+        oxr.backend = oxr_model_backend
+    if oxr_model_path is not None:
+        oxr.model_path = oxr_model_path
+    if oxr_model_dtype is not None:
+        oxr.dtype = oxr_model_dtype
     if oxr_model_url is not None:
         oxr.url = oxr_model_url
     if oxr_model_name is not None:
@@ -183,7 +200,16 @@ def serve(
             layout.nms_iou_threshold
         )
     os.environ["OXR__LAYOUT_ANALYZE_MODEL__PROVIDES_READING_ORDER"] = str(layout.provides_reading_order).lower()
-    os.environ["OXR__OXR_MODEL__URL"] = str(oxr.url)
+    os.environ["OXR__OXR_MODEL__BACKEND"] = oxr.backend
+    os.environ["OXR__OXR_MODEL__DTYPE"] = oxr.dtype
+    if oxr.url is None:
+        os.environ.pop("OXR__OXR_MODEL__URL", None)
+    else:
+        os.environ["OXR__OXR_MODEL__URL"] = oxr.url
+    if oxr.model_path is None:
+        os.environ.pop("OXR__OXR_MODEL__MODEL_PATH", None)
+    else:
+        os.environ["OXR__OXR_MODEL__MODEL_PATH"] = oxr.model_path
     os.environ["OXR__OXR_MODEL__MODEL_NAME"] = oxr.model_name
     os.environ["OXR__OXR_MODEL__MAX_TOKENS"] = str(oxr.max_tokens)
     os.environ["OXR__OXR_MODEL__MAX_CONCURRENCY"] = str(oxr.max_concurrency)

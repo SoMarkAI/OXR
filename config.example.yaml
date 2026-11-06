@@ -23,8 +23,16 @@ layout_analyze_model:
   provides_reading_order: false
 
 oxr_model:
+  # Where the recognition model runs:
+  #   remote - an OpenAI-compatible server (vLLM, hosted API)
+  #   mlx    - OXR-1.0 in this process on Apple Silicon (pip install -e ".[mlx]")
+  backend: remote
   # Model identifier used when sending requests to the OXR OpenAI-compatible API.
   model_name: oxr
+  # Checkpoint directory, required when backend is mlx.
+  # model_path: ./models/OXR-1.0
+  # Weight dtype for the mlx backend: bfloat16, float16 or float32.
+  # dtype: bfloat16
   # Base URL of the OXR OpenAI-compatible model service.
   url: http://127.0.0.1:8080/v1
   # Maximum number of tokens the model can generate per request.

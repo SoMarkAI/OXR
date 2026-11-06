@@ -19,6 +19,16 @@ dependencies = [
     "httpx",
 ]
 
+[project.optional-dependencies]
+# In-process recognition on Apple Silicon: `pip install -e ".[mlx]"`,
+# then set oxr_model.backend: mlx.
+mlx = [
+    "mlx>=0.29",
+    "transformers>=5.6",
+    "pillow>=10.0",
+    "numpy>=1.26",
+]
+
 [project.scripts]
 oxr = "oxr.cli.main:app"
 

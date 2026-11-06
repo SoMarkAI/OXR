@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from oxr.config.settings import settings
-from oxr.model.client import model_client
+from oxr.model import model_client
 from oxr.utils.pdf import pdf_to_images
 from oxr.pipeline.layout import analyze_layouts
 from oxr.pipeline.concurrency import gather_cancel_on_error

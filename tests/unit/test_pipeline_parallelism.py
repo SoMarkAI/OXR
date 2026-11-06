@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from oxr.config.settings import settings
-from oxr.model.client import model_client
+from oxr.model import model_client
 from oxr.pipeline import orchestrator
 from oxr.pipeline.concurrency import gather_cancel_on_error
 from oxr.pipeline.models import Block, BlockType, ContentFormat

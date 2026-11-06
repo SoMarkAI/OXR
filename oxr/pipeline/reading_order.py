@@ -8,7 +8,7 @@ from typing import Sequence
 import numpy as np
 
 from oxr.config.settings import OXRModelConfig, settings
-from oxr.model.client import OXRModelClient, model_client
+from oxr.model import OXRModelBackend, build_model, model_client
 from oxr.model.prompts import build_reading_order_prompt
 from oxr.pipeline.concurrency import gather_cancel_on_error
 from oxr.pipeline.errors import PipelineError, format_error_message, get_error_status_code
@@ -195,7 +195,7 @@ async def _resolve_page_reading_order(
     semaphore: asyncio.Semaphore,
     page_index: int,
     *,
-    client: OXRModelClient,
+    client: OXRModelBackend,
     config: OXRModelConfig,
 ) -> list[int]:
     block_count = len(blocks)
@@ -288,7 +288,7 @@ async def resolve_reading_orders(
     pages_images: Sequence[np.ndarray],
     semaphore: asyncio.Semaphore,
     *,
-    client: OXRModelClient | None = None,
+    client: OXRModelBackend | None = None,
     config: OXRModelConfig | None = None,
 ) -> list[list[int]]:
     """Resolve each page's local reading-order permutation using original images."""
@@ -300,7 +300,7 @@ async def resolve_reading_orders(
     )
     owns_client = client is None and config is not None
     resolved_client = client or (
-        OXRModelClient(resolved_config) if owns_client else model_client
+        build_model(resolved_config) if owns_client else model_client
     )
     try:
         return await gather_cancel_on_error(

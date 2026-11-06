@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from oxr.config.settings import settings
-from oxr.model.client import model_client
+from oxr.model import model_client
 from oxr.model.layout_client import layout_client
 from oxr.server.queue.memory_store import MemoryTaskStore
 from oxr.server.demo_api import router as demo_router, start_demo, stop_demo
@@ -14,6 +14,7 @@ from oxr.server.demo_api import router as demo_router, start_demo, stop_demo
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.validate_for_server()
+    await model_client.warmup()
     app.state.task_store = MemoryTaskStore()
     await start_demo(app)
     try:

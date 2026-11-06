@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 import numpy as np
 
 from oxr.config.settings import settings
-from oxr.model.client import model_client
+from oxr.model import model_client
 from oxr.pipeline.concurrency import gather_cancel_on_error
 from oxr.pipeline.errors import PipelineError, format_error_message, get_error_status_code
 from oxr.pipeline.models import Block, BlockType

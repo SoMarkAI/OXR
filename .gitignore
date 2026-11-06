@@ -51,3 +51,6 @@ copilot-instructions.md
 .agents/
 .cursor/
 docs/overlap-postprocess-validation.md
+
+models/
+.venv-mlx

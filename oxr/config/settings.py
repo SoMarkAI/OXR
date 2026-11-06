@@ -1,5 +1,6 @@
 import os
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -48,7 +49,12 @@ class LayoutAnalyzeModelConfig(BaseModel):
 class OXRModelConfig(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
+    # "remote" talks to an OpenAI-compatible server (vLLM, or any compatible host);
+    # "mlx" runs OXR-1.0 in this process on Apple Silicon.
+    backend: Literal["remote", "mlx"] = "remote"
     url: Optional[str] = None
+    model_path: Optional[str] = None
+    dtype: Literal["bfloat16", "float16", "float32"] = "bfloat16"
     model_name: str = "oxr"
     max_tokens: int = Field(default=8192, gt=0)
     max_concurrency: int = Field(default=16, gt=0)
@@ -106,12 +112,21 @@ class Settings(BaseSettings):
         missing = []
         if not self.layout_analyze_model.url:
             missing.append("layout_analyze_model.url")
-        if not self.oxr_model.url:
+        if self.oxr_model.backend == "remote" and not self.oxr_model.url:
             missing.append("oxr_model.url")
         if missing:
             raise ValueError(
                 "Both model URLs are required to start the server: " + ", ".join(missing)
             )
+        if self.oxr_model.backend == "mlx":
+            if not self.oxr_model.model_path:
+                raise ValueError(
+                    "oxr_model.model_path is required when oxr_model.backend is 'mlx'"
+                )
+            if not Path(self.oxr_model.model_path).is_dir():
+                raise ValueError(
+                    f"oxr_model.model_path is not a directory: {self.oxr_model.model_path}"
+                )
 
     @classmethod
     def load_from_yaml(cls, yaml_path: str) -> "Settings":
