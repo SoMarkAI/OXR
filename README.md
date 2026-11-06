@@ -10,7 +10,7 @@ An open-source document parsing model with SOTA accuracy and speed, using an RSI
 
 **Turn documents into Agent-Friendly data.**
 
-[🌐 Online Demo](https://free-oxr.somark.ai) ｜ [🔥 🆓 Free API](#free-api)
+[🌐 Online Demo](https://free-oxr.somark.ai) ｜ [🔥 🆓 Free API](#free-api) ｜ [❓ FAQ](docs/FAQ.md)
 
 [![GitHub | OXR](https://img.shields.io/badge/GitHub-OXR-181717?style=flat-square&logo=github)](https://github.com/SoMarkAI/OXR)   [![Hugging Face | OXR-1.0](https://img.shields.io/badge/Hugging%20Face-OXR--1.0-F59E0B?style=flat-square)](https://huggingface.co/SoMarkAI/OXR-1.0)   [![ModelScope | OXR-1.0](https://img.shields.io/badge/ModelScope-OXR--1.0-624AFF?style=flat-square)](https://modelscope.cn/models/SoMark/OXR-1.0)
 ![arXiv | Coming Soon](https://img.shields.io/badge/arXiv-Coming%20Soon-B31B1B?style=flat-square)
@@ -285,6 +285,10 @@ pip install somark
 somark --base-url http://localhost:8000/v1 --api-key dummy \
   parse document.pdf --formats md,json --out ./parsed-output/
 ```
+
+## FAQ
+
+Have questions about supported formats, hardware requirements, deployment, licensing, or the relationship between OXR and SoMark? See the [FAQ](docs/FAQ.md).
 
 ## Ecosystem
 

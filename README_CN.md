@@ -10,7 +10,7 @@
 
 **让文档成为 Agent-Friendly 数据**
 
-[🌐 Online Demo](https://free-oxr.somark.ai) ｜ [🔥 🆓 Free API](#free-api)
+[🌐 Online Demo](https://free-oxr.somark.ai) ｜ [🔥 🆓 Free API](#free-api) ｜ [❓ 常见问题](docs/FAQ_CN.md)
 
 [![GitHub | OXR](https://img.shields.io/badge/GitHub-OXR-181717?style=flat-square&logo=github)](https://github.com/SoMarkAI/OXR)   [![Hugging Face | OXR-1.0](https://img.shields.io/badge/Hugging%20Face-OXR--1.0-F59E0B?style=flat-square)](https://huggingface.co/SoMarkAI/OXR-1.0)   [![ModelScope | OXR-1.0](https://img.shields.io/badge/ModelScope-OXR--1.0-624AFF?style=flat-square)](https://modelscope.cn/models/SoMark/OXR-1.0)   ![arXiv | Coming Soon](https://img.shields.io/badge/arXiv-Coming%20Soon-B31B1B?style=flat-square)
 
@@ -284,6 +284,10 @@ pip install somark
 somark --base-url http://localhost:8000/v1 --api-key dummy \
   parse document.pdf --formats md,json --out ./parsed-output/
 ```
+
+## 常见问题
+
+关于支持的文件格式、硬件要求、部署方式、许可条款以及 OXR 与 SoMark 的关系等问题，请查阅 [FAQ](docs/FAQ_CN.md)。
 
 ## 生态支持
 
