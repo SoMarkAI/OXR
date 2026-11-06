@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from oxr.pipeline.errors import get_public_error_message
+from oxr.utils.page_range import PageRangeError, parse_page_range
 from oxr.server.schemas import (
     SyncParseResponse, 
     SyncParseData, 
@@ -55,6 +56,7 @@ class ParseRequestOptions:
     keep_header_footer: bool = False
     model_options: Dict[str, float] = field(default_factory=dict)
     element_formats: Dict[str, str] = field(default_factory=lambda: DEFAULT_ELEMENT_FORMATS.copy())
+    page_range: Optional[List[int]] = None
     warnings: List[str] = field(default_factory=list)
 
 
@@ -227,21 +229,42 @@ def _parse_element_formats(element_formats: Optional[str]) -> tuple[Dict[str, st
     return parsed, errors
 
 
+def _parse_page_range(page_range: Optional[str]) -> tuple[Optional[List[int]], List[str]]:
+    errors: List[str] = []
+    if page_range is None or not str(page_range).strip():
+        return None, errors
+    try:
+        return parse_page_range(str(page_range)), errors
+    except PageRangeError as exc:
+        errors.append(str(exc))
+        return None, errors
+
+
+def _pipeline_api_code(error: Exception) -> int:
+    code = getattr(error, "api_code", None)
+    if isinstance(code, int) and code != 0:
+        return code
+    return 1137
+
+
 def _parse_request_options(
     output_formats: Optional[List[str]],
     feature_config: Optional[str],
     extra: Optional[str],
     element_formats: Optional[str],
+    page_range: Optional[str] = None,
 ) -> tuple[Optional[ParseRequestOptions], List[str]]:
     errors: List[str] = []
     parsed_output_formats, output_errors = _parse_output_formats(output_formats)
     element_format_options, element_errors = _parse_element_formats(element_formats)
     keep_header_footer, feature_warnings, feature_errors = _parse_feature_config(feature_config)
     model_options, extra_errors = _parse_extra(extra)
+    parsed_page_range, page_range_errors = _parse_page_range(page_range)
     errors.extend(output_errors)
     errors.extend(element_errors)
     errors.extend(feature_errors)
     errors.extend(extra_errors)
+    errors.extend(page_range_errors)
     if errors:
         return None, errors
     return ParseRequestOptions(
@@ -249,6 +272,7 @@ def _parse_request_options(
         keep_header_footer=keep_header_footer,
         model_options=model_options,
         element_formats=element_format_options,
+        page_range=parsed_page_range,
         warnings=feature_warnings,
     ), errors
 
@@ -268,6 +292,7 @@ async def process_task_background(
     keep_header_footer: bool,
     model_options: Dict[str, float],
     element_formats: Dict[str, str],
+    page_range: Optional[List[int]],
 ):
     await task_store.set_processing(task_id)
     try:
@@ -278,6 +303,7 @@ async def process_task_background(
             keep_header_footer=keep_header_footer,
             model_options=model_options,
             element_formats=element_formats,
+            page_range=page_range,
         )
         store_result = {
             "file_name": result["file_name"],
@@ -299,8 +325,11 @@ async def parse_sync(
     feature_config: Optional[str] = Form(None),
     extra: Optional[str] = Form(None),
     element_formats: Optional[str] = Form(None),
+    page_range: Optional[str] = Form(None),
 ):
-    options, errors = _parse_request_options(output_formats, feature_config, extra, element_formats)
+    options, errors = _parse_request_options(
+        output_formats, feature_config, extra, element_formats, page_range,
+    )
     if errors:
         return _api_error(_format_issues("参数错误", errors))
     assert options is not None
@@ -316,6 +345,7 @@ async def parse_sync(
             keep_header_footer=options.keep_header_footer,
             model_options=options.model_options,
             element_formats=options.element_formats,
+            page_range=options.page_range,
         )
         return SyncParseResponse(
             message="任务成功",
@@ -331,7 +361,7 @@ async def parse_sync(
         LOGGER.warning(
             "Document processing failed (task_id=%s, error_type=%s)", task_id, type(e).__name__,
         )
-        return _api_error(get_public_error_message(e), code=1137)
+        return _api_error(get_public_error_message(e), code=_pipeline_api_code(e))
 
 @router.post("/parse/async", response_model=AsyncSubmitResponse)
 async def parse_async(
@@ -343,8 +373,11 @@ async def parse_async(
     feature_config: Optional[str] = Form(None),
     extra: Optional[str] = Form(None),
     element_formats: Optional[str] = Form(None),
+    page_range: Optional[str] = Form(None),
 ):
-    options, errors = _parse_request_options(output_formats, feature_config, extra, element_formats)
+    options, errors = _parse_request_options(
+        output_formats, feature_config, extra, element_formats, page_range,
+    )
     if errors:
         return _api_error(_format_issues("参数错误", errors))
     assert options is not None
@@ -365,6 +398,7 @@ async def parse_async(
         options.keep_header_footer,
         options.model_options,
         options.element_formats,
+        options.page_range,
     )
     
     return AsyncSubmitResponse(

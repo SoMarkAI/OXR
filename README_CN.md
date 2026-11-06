@@ -276,6 +276,17 @@ curl --fail-with-body http://localhost:8000/v1/parse/sync \
   -F 'output_formats=json'
 ```
 
+若只需解析 PDF 中的部分页面，可传入 `page_range`：使用从 1 开始的页码或闭区间，逗号分隔。未选中的页面不会被渲染和识别。JSON 中的 `page_num` 仍是原文件中从 0 开始的页序号。响应 metadata 会包含 `total_pages`；指定范围时还会包含 `selected_pages`（从 1 开始）。图片视为单页，仅允许 `1`。
+
+```Bash
+curl --fail-with-body http://localhost:8000/v1/parse/sync \
+  -F 'file=@document.pdf' \
+  -F 'api_key=dummy' \
+  -F 'output_formats=markdown' \
+  -F 'output_formats=json' \
+  -F 'page_range=1-3,5,8-10'
+```
+
 SoMark 为解析业务封装了完善的 CLI & SDK，并提供了 python 和 js 两种语言的支持。本 OXR 项目兼容该 CLI 和 SDK 的文档解析接口，可以直接替换baseURL后使用。更多信息可以查阅该文档：https://docs.somark.ai/en/cli-sdk
 
 ```Bash
