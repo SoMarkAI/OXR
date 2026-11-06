@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 from dataclasses import dataclass
+import json
 import logging
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import signal
@@ -59,6 +61,8 @@ class AllInOneConfig:
     dfine_port: int
     gpu_memory_utilization: float
     max_model_len: int
+    max_num_seqs: int
+    attention_backend: str
     startup_timeout: int
     shutdown_timeout: int
     vllm_python: str
@@ -98,6 +102,15 @@ class AllInOneConfig:
         if not dfine_model_path:
             raise ValueError("DFINE_MODEL_PATH must be set")
 
+        # Defaults reproduce the published runtime. Larger batches trade
+        # bit-for-bit reproducibility of those numbers for throughput.
+        attention_backend = source.get("VLLM_ATTENTION_BACKEND", "TRITON_ATTN").strip()
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]*", attention_backend):
+            raise ValueError(
+                "VLLM_ATTENTION_BACKEND must be a vLLM backend name such as TRITON_ATTN "
+                f"or FLASH_ATTN; got {attention_backend!r}"
+            )
+
         vllm_extra_args = tuple(shlex.split(source.get("VLLM_EXTRA_ARGS", "")))
         managed_vllm_options = {
             "--gpu-memory-utilization",
@@ -136,6 +149,8 @@ class AllInOneConfig:
             dfine_port=ports["DFINE_PORT"],
             gpu_memory_utilization=gpu_memory_utilization,
             max_model_len=_env_int(source, "VLLM_MAX_MODEL_LEN", 16384),
+            max_num_seqs=_env_int(source, "VLLM_MAX_NUM_SEQS", 16),
+            attention_backend=attention_backend,
             startup_timeout=_env_int(source, "ALLINONE_STARTUP_TIMEOUT", 900),
             shutdown_timeout=_env_int(source, "ALLINONE_SHUTDOWN_TIMEOUT", 30),
             vllm_python=source.get("VLLM_PYTHON", "/opt/vllm-venv/bin/python"),
@@ -193,9 +208,9 @@ class AllInOneConfig:
             "--dtype",
             "bfloat16",
             "--attention-config",
-            '{"backend":"TRITON_ATTN"}',
+            json.dumps({"backend": self.attention_backend}, separators=(",", ":")),
             "--max-num-seqs",
-            "16",
+            str(self.max_num_seqs),
             *self.vllm_extra_args,
         ]
 

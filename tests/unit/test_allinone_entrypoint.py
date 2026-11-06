@@ -94,6 +94,13 @@ def test_unified_repository_paths_and_frozen_inference_options():
     assert command[command.index("--max-num-seqs") + 1] == "16"
 
 
+def test_vllm_scheduler_options_are_configurable():
+    config = _config(VLLM_MAX_NUM_SEQS="128", VLLM_ATTENTION_BACKEND="FLASH_ATTN")
+    command = config.vllm_command()
+    assert json.loads(command[command.index("--attention-config") + 1]) == {"backend": "FLASH_ATTN"}
+    assert command[command.index("--max-num-seqs") + 1] == "128"
+
+
 @pytest.fixture
 def model_repository(tmp_path):
     for name in (
@@ -183,6 +190,10 @@ def test_vllm_extra_args_are_parsed_without_shell_evaluation():
         ({"VLLM_EXTRA_ARGS": "--attention-config.backend=FLASH_ATTN"}, "cannot override managed options"),
         ({"VLLM_EXTRA_ARGS": "--attention-backend FLASH_ATTN"}, "cannot override managed options"),
         ({"ALLINONE_STARTUP_TIMEOUT": "0"}, "must be greater than zero"),
+        ({"VLLM_MAX_NUM_SEQS": "0"}, "must be greater than zero"),
+        ({"VLLM_MAX_NUM_SEQS": "many"}, "must be an integer"),
+        ({"VLLM_ATTENTION_BACKEND": '{"backend":"FLASH_ATTN"}'}, "must be a vLLM backend name"),
+        ({"VLLM_ATTENTION_BACKEND": ""}, "must be a vLLM backend name"),
     ],
 )
 def test_invalid_configuration_fails_closed(overrides, message):
