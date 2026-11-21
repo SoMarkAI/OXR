@@ -9,6 +9,7 @@ from oxr.config.settings import settings
 from oxr.model.client import ModelOutput
 from oxr.pipeline import orchestrator
 from oxr.pipeline.models import Block, BlockType, ContentFormat
+from oxr.pipeline.postprocess.picture_postprocess import postprocess_picture
 from oxr.pipeline.postprocess.table_images import (
     TABLE_IMAGE_ROLE,
     group_table_images,
@@ -277,3 +278,15 @@ def test_feature_off_keeps_unmasked_table_request_and_standalone_picture(
     assert first.generated_role == ""
     assert first.content.startswith("![](")
     assert len(result[0]) == 2
+
+
+def test_picture_markdown_reference_uses_forward_slashes(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings.pipeline, "image_output_dir", str(tmp_path))
+    _, _, first, _ = scene()
+
+    postprocess_picture(first, np.zeros((2, 2, 3), dtype=np.uint8), "demo.png", 0)
+
+    assert first.format == ContentFormat.MARKDOWN
+    assert first.content.startswith("![](")
+    assert "\\" not in first.content
+    assert "/demo/imgs/0_" in first.content

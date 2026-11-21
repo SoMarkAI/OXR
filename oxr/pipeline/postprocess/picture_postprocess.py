@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import cv2
 import numpy as np
 from oxr.pipeline.models import Block, ContentFormat
@@ -22,6 +24,6 @@ def postprocess_picture(block: Block, image: np.ndarray, file_name: str, page_nu
     cv2.imwrite(img_path, image)
     
     # create markdown reference
-    block.content = f"![]({img_path})"
+    block.content = f"![]({Path(img_path).as_posix()})"
     block.format = ContentFormat.MARKDOWN
     return block
